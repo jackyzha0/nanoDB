@@ -2,6 +2,7 @@
 package index
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -59,6 +60,11 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 	}
 
 	return &File{}, false
+}
+
+// ResolvePath returns a string representing the path to file
+func (f *File) ResolvePath() string {
+	return fmt.Sprintf("%s/%s.json", I.Dir, f.FileName)
 }
 
 // Regenerate rebuilds the current file index from given directory
