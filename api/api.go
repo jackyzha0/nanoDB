@@ -3,6 +3,7 @@ package api
 import (
     "encoding/json"
     "fmt"
+    "io/ioutil"
     "net/http"
 
     "github.com/jackyzha0/nanoDB/index"
@@ -21,7 +22,7 @@ func Serve() {
     router.GET("/index", GetIndex)
     router.POST("/regenerate", RegenerateIndex)
     router.GET("/get/:key", GetKey)
-    // TODO: /{key} PUT -- set value of that key to contents
+    router.PUT("/put/:key", UpdateKey)
     // TODO: /{key}/{field} PATCH -- update given key's field with contents
     // TODO: /{key} UNLINK -- kind of like a soft delete, just remove it from map
     // TODO: /{key} DELETE -- hard delete, remove from map and delete actual file
@@ -66,13 +67,38 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     }
 
     // otherwise write 404
-    w.WriteHeader(http.StatusNotFound)
-    fmt.Fprintf(w, "key '%s' not found", key)
-    log.Warnf("key '%s' not found", key)
+    write404(w, key)
 }
 
 // RegenerateIndex rebuilds main index with saved directory
 func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     fmt.Fprintf(w, "hit regenerate index")
     index.I.Regenerate(index.I.Dir)
+}
+
+// UpdateKey updates the file with that key with the request body, otherwise return 404
+func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    key := ps.ByName("key")
+    file, ok := index.I.Lookup(key)
+
+    // if file fetch is successful
+    if ok {
+        bodyBytes, err := ioutil.ReadAll(r.Body)
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        file.WriteString(string(bodyBytes))
+        fmt.Fprintf(w, "update successful")
+        return
+    }
+
+    // otherwise, return 404
+    write404(w, key)
+}
+
+func write404(w http.ResponseWriter, key string) {
+    w.WriteHeader(http.StatusNotFound)
+    fmt.Fprintf(w, "key '%s' not found", key)
+    log.Warnf("key '%s' not found", key)
 }

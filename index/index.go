@@ -3,6 +3,7 @@ package index
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -91,4 +92,24 @@ func (i *FileIndex) buildIndexMap() map[string]*File {
 	}
 
 	return newIndexMap
+}
+
+// replaces the contents of f with str
+func (f *File) WriteString(str string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// create blank file
+	os.Create(f.ResolvePath())
+	file, err := os.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
+	defer file.Close()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, e := file.WriteString(str)
+	if e != nil {
+		log.Fatal(err)
+	}
 }
