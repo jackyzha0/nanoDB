@@ -14,13 +14,18 @@ func Serve() {
     router := httprouter.New()
 
     // define endpoints
-    router.GET("/", GetIndex)
+    router.GET("/", Health)
+    router.GET("/index", GetIndex)
     router.POST("/regenerate", RegenerateIndex)
     router.GET("/get/:key", GetKey)
 
     // start server
     log.Info("starting api server on port 3000")
     log.Fatal(http.ListenAndServe(":3000", router))
+}
+
+func Health(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+    fmt.Fprint(w, "ok")
 }
 
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

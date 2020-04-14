@@ -64,10 +64,11 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 // Regenerate rebuilds the current file index from given directory
 // by crawling it for any .json files
 func (i *FileIndex) Regenerate(dir string) {
-	start := time.Now()
-	log.Infof("building index for directory %s...", dir)
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	start := time.Now()
+	log.Infof("building index for directory %s...", dir)
 
 	i.Dir = dir
 	i.index = i.buildIndexMap()
