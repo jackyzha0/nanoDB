@@ -3,6 +3,7 @@ package index
 import (
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
