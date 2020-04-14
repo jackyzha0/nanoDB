@@ -32,6 +32,19 @@ type File struct {
 	mu       sync.RWMutex
 }
 
+// List returns all keys in database
+func (i *FileIndex) List() (res []string) {
+	// read lock
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	for k := range i.index {
+		res = append(res, k)
+	}
+
+	return res
+}
+
 // Lookup returns the file with that key
 // Returns (File, true) if file exists
 // otherwise, returns new File, false

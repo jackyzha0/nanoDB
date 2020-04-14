@@ -24,7 +24,8 @@ func Serve() {
 }
 
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    fmt.Fprintf(w, "hit get index")
+    files := index.I.List()
+    fmt.Fprintf(w, "%+v", files)
 }
 
 func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
