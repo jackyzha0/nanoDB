@@ -10,7 +10,7 @@ import (
     "github.com/julienschmidt/httprouter"
 )
 
-func init() {
+func Serve() {
     router := httprouter.New()
 
     // define endpoints
@@ -19,7 +19,7 @@ func init() {
     router.GET("/get/:key", GetKey)
 
     // start server
-    log.Info("Starting server on port 3000...")
+    log.Info("starting api server on port 3000")
     log.Fatal(http.ListenAndServe(":3000", router))
 }
 
@@ -29,10 +29,13 @@ func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     key := ps.ByName("key")
-    fmt.Fprintf(w, fmt.Sprintf("attempt to get key %s", key))
+    log.Infof("attempt to get key %s", key)
+
+    file, ok := index.I.Lookup(key)
+    fmt.Fprintf(w, "%+v, %t", file.FileName, ok)
 }
 
 func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     fmt.Fprintf(w, "hit regenerate index")
-    index.CrawlDirectory(".")
+    index.I.Regenerate(index.I.Dir)
 }

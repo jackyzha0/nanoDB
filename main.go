@@ -1,10 +1,15 @@
 package main
 
 import (
-	_ "github.com/jackyzha0/nanoDB/api"
+	"github.com/jackyzha0/nanoDB/api"
 	"github.com/jackyzha0/nanoDB/index"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	index.I.Regenerate()
+	log.Infof("initializing nanoDB")
+	index.I.Regenerate("db")
+
+    api.Serve()
 }
