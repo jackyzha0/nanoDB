@@ -21,6 +21,7 @@ func Serve() {
     router.GET("/index", GetIndex)
     router.POST("/regenerate", RegenerateIndex)
     router.GET("/get/:key", GetKey)
+    router.GET("/get/:key/:field", GetKeyField)
     router.PUT("/put/:key", UpdateKey)
     // TODO: /{key}/{field} PATCH -- update given key's field with contents
     // TODO: /{key} UNLINK -- kind of like a soft delete, just remove it from map
@@ -38,7 +39,6 @@ func Health(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 // GetIndex returns a JSON of all files in db index
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    w.Header().Set("Content-Type", "application/json")
     log.Info("retrieving index")
     files := index.I.List()
 
@@ -48,6 +48,7 @@ func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
         Files: files,
     }
 
+    w.Header().Set("Content-Type", "application/json")
     jsonData, _ := json.Marshal(data)
     fmt.Fprintf(w, "%+v", string(jsonData))
 }
@@ -71,6 +72,46 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     log.WWarn(w, "key '%s' not found", key)
 }
 
+// GetKeyField
+func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    key := ps.ByName("key")
+    field := ps.ByName("field")
+    log.Info("get field '%s' in key '%s'", field, key)
+
+    file, ok := index.I.Lookup(key)
+
+    // if file fetch is successful
+    if ok {
+        // unpack bytes into map
+        bytes, _ := file.GetByteArray()
+        var jsonMap map[string]interface{}
+        err := json.Unmarshal(bytes, &jsonMap)
+
+        if err != nil {
+            w.WriteHeader(http.StatusBadRequest)
+            log.WWarn(w, "err key '%s' cannot be parsed into json: %s", key, err.Error())
+            return
+        }
+
+        val, ok := jsonMap[field]
+        if !ok {
+            w.WriteHeader(http.StatusBadRequest)
+            log.WWarn(w, "err key '%s' does not have field '%s'", key, field)
+            return
+        }
+
+        // successful field get
+        w.Header().Set("Content-Type", "application/json")
+        jsonData, _ := json.Marshal(val)
+        fmt.Fprintf(w, "%+v", string(jsonData))
+        return
+    }
+
+    // otherwise write 404
+    w.WriteHeader(http.StatusNotFound)
+    log.WWarn(w, "key '%s' not found", key)
+}
+
 // UpdateKey creates or updates the file with that key with the request body
 func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     key := ps.ByName("key")
@@ -80,12 +121,16 @@ func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     // get bytes from request body
     bodyBytes, err := ioutil.ReadAll(r.Body)
     if err != nil {
-        log.Warn("err reading body when key %s: %s", key, err.Error())
+        w.WriteHeader(http.StatusBadRequest)
+        log.WWarn(w, "err reading body when key '%s': %s", key, err.Error())
+        return
     }
 
     err = index.I.Put(file, bodyBytes)
     if err != nil {
-        log.Warn("err updating key %s: %s", key, err.Error())
+        w.WriteHeader(http.StatusInternalServerError)
+        log.WWarn(w, "err updating key '%s': %s", key, err.Error())
+        return
     }
 
     // file is updated
