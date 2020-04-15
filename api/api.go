@@ -22,8 +22,8 @@ func Serve() {
     router.POST("/regenerate", RegenerateIndex)
     router.GET("/get/:key", GetKey)
     router.PUT("/put/:key", UpdateKey)
+    router.DELETE("/delete/:key", DeleteKey)
     // TODO: /{key}/{field} PATCH -- update given key's field with contents
-    // TODO: /{key} UNLINK -- kind of like a soft delete, just remove it from map
     // TODO: /{key} DELETE -- hard delete, remove from map and delete actual file
 
     // start server
@@ -80,12 +80,12 @@ func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     // get bytes from request body
     bodyBytes, err := ioutil.ReadAll(r.Body)
     if err != nil {
-        log.Warn("err reading body when key %s: %s", key, err.Error())
+        log.Warn("err reading body when key '%s': '%s'", key, err.Error())
     }
 
     err = index.I.Put(file, bodyBytes)
     if err != nil {
-        log.Warn("err updating key %s: %s", key, err.Error())
+        log.Warn("err updating key '%s': '%s'", key, err.Error())
     }
 
     // file is updated
@@ -100,4 +100,25 @@ func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     index.I.Regenerate(index.I.Dir)
     log.WInfo(w, "regenerated index")
+}
+
+// DeleteKey deletes the file associated with the given key, does nothing if key not found
+func DeleteKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    key := ps.ByName("key")
+    log.Info("delete key '%s'", key)
+    file, ok := index.I.Lookup(key)
+
+    // if file found delete it
+    if ok {
+        err := index.I.Delete(file)
+        if err != nil {
+            log.Warn("unable to delete key '%s': '%s'", key, err.Error())
+        }
+
+        log.WInfo(w, "key '%s' deleted successfully", key)
+        return
+    }
+
+    // else state not found
+    log.WInfo(w, "key '%s' does not exist", key)
 }
