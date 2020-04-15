@@ -42,12 +42,14 @@ func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     log.Info("retrieving index")
     files := index.I.List()
 
+    // create temporary struct with index data
     data := struct {
         Files []string `json:"files"`
     }{
         Files: files,
     }
 
+    // create json representation and return
     w.Header().Set("Content-Type", "application/json")
     jsonData, _ := json.Marshal(data)
     fmt.Fprintf(w, "%+v", string(jsonData))
@@ -93,6 +95,7 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
             return
         }
 
+        // lookup value
         val, ok := jsonMap[field]
         if !ok {
             w.WriteHeader(http.StatusBadRequest)
@@ -126,6 +129,7 @@ func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
         return
     }
 
+    // update index
     err = index.I.Put(file, bodyBytes)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
