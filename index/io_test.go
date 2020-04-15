@@ -2,6 +2,7 @@ package index
 
 import (
 	"testing"
+	"fmt"
 	"encoding/json"
 
 	os "github.com/spf13/afero"
@@ -11,6 +12,13 @@ import (
 func checkDeepEquals(t *testing.T, a interface{}, b interface{}) {
 	t.Helper()
 	if !cmp.Equal(a, b) {
+		t.Errorf("got %+v, want %+v", a, b)
+	}
+}
+
+func checkJSONEquals(t *testing.T, a interface{}, b interface{}) {
+	t.Helper()
+	if fmt.Sprintf("%+v", a) != fmt.Sprintf("%+v", b) {
 		t.Errorf("got %+v, want %+v", a, b)
 	}
 }
@@ -85,6 +93,6 @@ func TestToMap(t *testing.T) {
 
 		got, err := f.ToMap()
 		assertNilErr(t, err)
-		checkDeepEquals(t, expected, got)
+		checkJSONEquals(t, expected, got)
 	})
 }
