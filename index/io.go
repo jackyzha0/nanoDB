@@ -10,10 +10,8 @@ import (
 	af "github.com/spf13/afero"
 )
 
-var fs = af.NewOsFs()
-
 func crawlDirectory(directory string) []string {
-	files, err := af.ReadDir(fs, directory)
+	files, err := af.ReadDir(I.FileSystem, directory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +47,7 @@ func (f *File) getByteArray() ([]byte, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	
-	return af.ReadFile(fs, f.ResolvePath())
+	return af.ReadFile(I.FileSystem, f.ResolvePath())
 }
 
 // ReplaceContent changes the contents of file f to be str
@@ -59,12 +57,12 @@ func (f *File) ReplaceContent(str string) error {
 	defer f.mu.Unlock()
 
 	// create blank file
-	_, err := fs.Create(f.ResolvePath())
+	_, err := I.FileSystem.Create(f.ResolvePath())
 	if err != nil {
 		return err
 	}
 
-	file, err := fs.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
+	file, err := I.FileSystem.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		return err
 	}
@@ -88,7 +86,7 @@ func (f *File) Delete() error {
 	defer f.mu.Unlock()
 
 	// tries to delete the file
-	err := fs.Remove(f.ResolvePath())
+	err := I.FileSystem.Remove(f.ResolvePath())
 	if err != nil {
 		return err
 	}

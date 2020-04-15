@@ -38,27 +38,27 @@ func assertErr(t *testing.T, err error) {
 	}
 }
 
-func assertFileExists(t *testing.T, fs af.Fs, filePath string) {
+func assertFileExists(t *testing.T, filePath string) {
 	t.Helper()
-	if _, err := fs.Stat(filePath+".json"); os.IsNotExist(err) {
+	if _, err := I.FileSystem.Stat(filePath+".json"); os.IsNotExist(err) {
 		t.Errorf("didnt find file at %s when should have", filePath)
 	}
 }
 
-func assertFileDoesNotExist(t *testing.T, fs af.Fs, filePath string) {
+func assertFileDoesNotExist(t *testing.T, filePath string) {
 	t.Helper()
-	if _, err := fs.Stat(filePath+".json"); err == nil {
+	if _, err := I.FileSystem.Stat(filePath+".json"); err == nil {
 		t.Errorf("found file at %s when shouldn't have", filePath)
 	}
 }
 
-func makeNewFile(fs af.Fs, name string, contents string) {
-	af.WriteFile(fs, name, []byte(contents), 0644)
+func makeNewFile(name string, contents string) {
+	af.WriteFile(I.FileSystem, name, []byte(contents), 0644)
 }
 
-func makeNewJSON(fs af.Fs, name string, contents map[string]interface{}) *File {
+func makeNewJSON(name string, contents map[string]interface{}) *File {
 	jsonData, _ := json.Marshal(contents)
-	af.WriteFile(fs, name+".json", jsonData, 0644)
+	af.WriteFile(I.FileSystem, name+".json", jsonData, 0644)
 	return &File{FileName: name}
 }
 
@@ -67,24 +67,33 @@ func mapToString(contents map[string]interface{}) string {
 	return string(jsonData)
 }
 
+func TestMain(m *testing.M) {
+    I = NewFileIndex("")
+    exitVal := m.Run()
+    os.Exit(exitVal)
+}
+
 func TestCrawlDirectory(t *testing.T) {
 
 	t.Run("crawl empty directory", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
+
 		checkDeepEquals(t, crawlDirectory(""), []string{})
 	})
 
 	t.Run("crawl directory with two files", func(t *testing.T) {
-		fs = af.NewMemMapFs()
-		makeNewFile(fs, "test.json", "file1")
-		makeNewFile(fs, "test2.json", "file2")
+		I.SetFileSystem(af.NewMemMapFs())
+
+		makeNewFile("test.json", "file1")
+		makeNewFile("test2.json", "file2")
 		checkDeepEquals(t, crawlDirectory(""), []string{"test", "test2"})
 	})
 
 	t.Run("crawl directory with non json file", func(t *testing.T) {
-		fs = af.NewMemMapFs()
-		makeNewFile(fs, "test.json", "file1")
-		makeNewFile(fs, "asdf.txt", "asdf")
+		I.SetFileSystem(af.NewMemMapFs())
+
+		makeNewFile("test.json", "file1")
+		makeNewFile("asdf.txt", "asdf")
 		checkDeepEquals(t, crawlDirectory(""), []string{"test"})
 	})
 }
@@ -92,14 +101,14 @@ func TestCrawlDirectory(t *testing.T) {
 func TestToMap(t *testing.T) {
 
 	t.Run("simple flat json to map", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
 
 		expected := map[string]interface{}{
 			"field":  "value",
 			"field2": "value2",
 		}
 
-		f := makeNewJSON(fs, "test", expected)
+		f := makeNewJSON("test", expected)
 
 		got, err := f.ToMap()
 		assertNilErr(t, err)
@@ -107,7 +116,7 @@ func TestToMap(t *testing.T) {
 	})
 
 	t.Run("json with array", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
 
 		expected := map[string]interface{}{
 			"array": []string{
@@ -116,7 +125,7 @@ func TestToMap(t *testing.T) {
 			},
 		}
 
-		f := makeNewJSON(fs, "test", expected)
+		f := makeNewJSON("test", expected)
 
 		got, err := f.ToMap()
 		assertNilErr(t, err)
@@ -124,7 +133,7 @@ func TestToMap(t *testing.T) {
 	})
 
 	t.Run("deep nested with map", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
 
 		expected := map[string]interface{}{
 			"array": []interface{}{
@@ -135,7 +144,7 @@ func TestToMap(t *testing.T) {
 			},
 		}
 
-		f := makeNewJSON(fs, "test", expected)
+		f := makeNewJSON("test", expected)
 
 		got, err := f.ToMap()
 		assertNilErr(t, err)
@@ -146,7 +155,7 @@ func TestToMap(t *testing.T) {
 func TestReplaceContent(t *testing.T) {
 
 	t.Run("update existing file", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
 
 		old := map[string]interface{}{
 			"field":  "value",
@@ -157,8 +166,8 @@ func TestReplaceContent(t *testing.T) {
 			"field": "value",
 		}
 
-		f := makeNewJSON(fs, "test", old)
-		assertFileExists(t, fs, "test")
+		f := makeNewJSON("test", old)
+		assertFileExists(t, "test")
 
 		err := f.ReplaceContent(mapToString(new))
 		assertNilErr(t, err)
@@ -169,18 +178,18 @@ func TestReplaceContent(t *testing.T) {
 	})
 
 	t.Run("create new file", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
 
 		new := map[string]interface{}{
 			"field": "value",
 		}
 
 		f := &File{FileName: "test"}
-		assertFileDoesNotExist(t, fs, "test")
+		assertFileDoesNotExist(t, "test")
 
 		err := f.ReplaceContent(mapToString(new))
 		assertNilErr(t, err)
-		assertFileExists(t, fs, "test")
+		assertFileExists(t, "test")
 
 		got, err := f.ToMap()
 		assertNilErr(t, err)
@@ -191,27 +200,28 @@ func TestReplaceContent(t *testing.T) {
 func TestDelete(t *testing.T) {
 
 	t.Run("delete non-existent file", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
+
 		f := &File{FileName: "doesnt-exist"}
-		assertFileDoesNotExist(t, fs, "doesnt-exist")
+		assertFileDoesNotExist(t, "doesnt-exist")
 
 		err := f.Delete()
 		assertErr(t, err)
-		assertFileDoesNotExist(t, fs, "doesnt-exist")
+		assertFileDoesNotExist(t, "doesnt-exist")
 	})
 
 	t.Run("delete existing file", func(t *testing.T) {
-		fs = af.NewMemMapFs()
+		I.SetFileSystem(af.NewMemMapFs())
 
 		data := map[string]interface{}{
 			"field": "value",
 		}
 
-		f := makeNewJSON(fs, "test", data)
-		assertFileExists(t, fs, "test")
+		f := makeNewJSON("test", data)
+		assertFileExists(t, "test")
 
 		err := f.Delete()
 		assertNilErr(t, err)
-		assertFileDoesNotExist(t, fs, "test")
+		assertFileDoesNotExist(t, "test")
 	})
 }

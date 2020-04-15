@@ -7,16 +7,18 @@ import (
 	"time"
 
 	"github.com/jackyzha0/nanoDB/log"
+	af "github.com/spf13/afero"
 )
 
 // I is the global database index which keeps track of
 // which files are where
 var I *FileIndex
 
-func init() {
-	I = &FileIndex{
-		Dir:   "",
+func NewFileIndex(dir string) *FileIndex {
+	return &FileIndex{
+		Dir:   dir,
 		index: map[string]*File{},
+		FileSystem: af.NewOsFs(),
 	}
 }
 
@@ -25,12 +27,17 @@ type FileIndex struct {
 	mu    sync.RWMutex
 	Dir   string
 	index map[string]*File
+	FileSystem af.Fs
 }
 
 // File stores the filename as well as a read-write mutex
 type File struct {
 	FileName string
 	mu       sync.RWMutex
+}
+
+func (i *FileIndex) SetFileSystem(fs af.Fs) {
+	i.FileSystem = fs
 }
 
 // List returns all keys in database
@@ -82,15 +89,14 @@ func (f *File) ResolvePath() string {
 
 // Regenerate rebuilds the current file index from given directory
 // by crawling it for any .json files
-func (i *FileIndex) Regenerate(dir string) {
+func (i *FileIndex) Regenerate() {
 	// write lock on index
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	start := time.Now()
-	log.Info("building index for directory %s...", dir)
+	log.Info("building index for directory %s...", I.Dir)
 
-	i.Dir = dir
 	i.index = i.buildIndexMap()
 	log.Info("built index of %d files in %d ms", len(i.index), time.Since(start).Milliseconds())
 }
