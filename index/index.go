@@ -74,6 +74,9 @@ func (i *FileIndex) Put(file *File, bytes []byte) error {
 
 // ResolvePath returns a string representing the path to file
 func (f *File) ResolvePath() string {
+	if I.Dir == "" {
+		return fmt.Sprintf("%s.json", f.FileName)
+	}
 	return fmt.Sprintf("%s/%s.json", I.Dir, f.FileName)
 }
 
