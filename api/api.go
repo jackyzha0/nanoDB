@@ -7,8 +7,7 @@ import (
     "net/http"
 
     "github.com/jackyzha0/nanoDB/index"
-
-    log "github.com/sirupsen/logrus"
+    "github.com/jackyzha0/nanoDB/log"
 
     "github.com/julienschmidt/httprouter"
 )
@@ -34,12 +33,13 @@ func Serve() {
 
 // Health is a healtcheck endpoint, always returns 200 ok 
 func Health(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    fmt.Fprint(w, "ok")
+    log.WInfo(w, "health ok")
 }
 
 // GetIndex returns a JSON of all files in db index
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     w.Header().Set("Content-Type", "application/json")
+    log.Info("retrieving index")
     files := index.I.List()
 
     data := struct {
@@ -55,7 +55,7 @@ func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // GetKey returns the file with that key if found, otherwise return 404
 func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     key := ps.ByName("key")
-    log.Infof("get key '%s'", key)
+    log.Info("get key '%s'", key)
 
     file, ok := index.I.Lookup(key)
 
@@ -67,33 +67,37 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     }
 
     // otherwise write 404
-    write404(w, key)
-}
-
-// RegenerateIndex rebuilds main index with saved directory
-func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    fmt.Fprintf(w, "hit regenerate index")
-    index.I.Regenerate(index.I.Dir)
+    w.WriteHeader(http.StatusNotFound)
+    log.WWarn(w, "key '%s' not found", key)
 }
 
 // UpdateKey creates or updates the file with that key with the request body
 func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     key := ps.ByName("key")
-    file, _ := index.I.Lookup(key)
+    log.Info("put key '%s'", key)
+    file, ok := index.I.Lookup(key)
 
     // get bytes from request body
     bodyBytes, err := ioutil.ReadAll(r.Body)
     if err != nil {
-        log.Fatal(err)
+        log.Warn("err reading body when key %s: %s", key, err.Error())
     }
 
-    // creates file if doesnt exist and replace file content with request body
-    file.ReplaceContent(string(bodyBytes))
-    fmt.Fprintf(w, "update '%s' successful", key)
+    err = index.I.Put(file, bodyBytes)
+    if err != nil {
+        log.Warn("err updating key %s: %s", key, err.Error())
+    }
+
+    // file is updated
+    if ok {
+        log.WInfo(w, "update '%s' successful", key)
+        return
+    }
+    log.WInfo(w, "create '%s' successful", key)
 }
 
-func write404(w http.ResponseWriter, key string) {
-    w.WriteHeader(http.StatusNotFound)
-    fmt.Fprintf(w, "key '%s' not found", key)
-    log.Warnf("key '%s' not found", key)
+// RegenerateIndex rebuilds main index with saved directory
+func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+    index.I.Regenerate(index.I.Dir)
+    log.WInfo(w, "regenerated index")
 }
