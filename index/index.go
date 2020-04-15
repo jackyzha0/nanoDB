@@ -60,7 +60,7 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 		return file, true
 	}
 
-	return &File{}, false
+	return &File{FileName: key}, false
 }
 
 // ResolvePath returns a string representing the path to file
@@ -94,8 +94,8 @@ func (i *FileIndex) buildIndexMap() map[string]*File {
 	return newIndexMap
 }
 
-// replaces the contents of f with str
-func (f *File) WriteString(str string) {
+// ReplaceContent changes the contents of file f to be str
+func (f *File) ReplaceContent(str string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -108,6 +108,7 @@ func (f *File) WriteString(str string) {
 		log.Fatal(err)
 	}
 
+	// appends the given str to the now empty file
 	_, e := file.WriteString(str)
 	if e != nil {
 		log.Fatal(err)
