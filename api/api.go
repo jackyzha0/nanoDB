@@ -112,7 +112,7 @@ func DeleteKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     if ok {
         err := index.I.Delete(file)
         if err != nil {
-            log.Warn("unable to delete key '%s': '%s'", key, err.Error())
+            log.Warn("err unable to delete key '%s': '%s'", key, err.Error())
         }
 
         log.WInfo(w, "key '%s' deleted successfully", key)
@@ -120,5 +120,6 @@ func DeleteKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     }
 
     // else state not found
-    log.WInfo(w, "key '%s' does not exist", key)
+    w.WriteHeader(http.StatusNotFound)
+    log.WWarn(w, "key '%s' does not exist", key)
 }

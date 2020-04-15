@@ -100,10 +100,13 @@ func (i *FileIndex) buildIndexMap() map[string]*File {
 	return newIndexMap
 }
 
-// Delete removes the file from I and deletes the given file
+// Delete deletes the given file and then removes it from I
 func (i *FileIndex) Delete(file *File) error {
 	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	// delete first so pointer isn't nil
+	err := file.Delete()
 	delete(i.index, file.FileName)
-	i.mu.Unlock()
-	return file.Delete()
+	return err
 }
