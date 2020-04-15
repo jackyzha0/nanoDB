@@ -3,6 +3,7 @@ package index
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -59,7 +60,7 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 		return file, true
 	}
 
-	return &File{}, false
+	return &File{FileName: key}, false
 }
 
 // ResolvePath returns a string representing the path to file
@@ -91,4 +92,25 @@ func (i *FileIndex) buildIndexMap() map[string]*File {
 	}
 
 	return newIndexMap
+}
+
+// ReplaceContent changes the contents of file f to be str
+func (f *File) ReplaceContent(str string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// create blank file
+	os.Create(f.ResolvePath())
+	file, err := os.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
+	defer file.Close()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// appends the given str to the now empty file
+	_, e := file.WriteString(str)
+	if e != nil {
+		log.Fatal(err)
+	}
 }
