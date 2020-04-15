@@ -17,24 +17,17 @@ func Serve() {
     router := httprouter.New()
 
     // define endpoints
-    router.GET("/", Health)
-    router.GET("/index", GetIndex)
-    router.POST("/regenerate", RegenerateIndex)
-    router.GET("/get/:key", GetKey)
-    router.GET("/get/:key/:field", GetKeyField)
-    router.PUT("/put/:key", UpdateKey)
-    router.DELETE("/delete/:key", DeleteKey)
-    // TODO: /{key}/{field} PATCH -- update given key's field with contents
-    // TODO: /{key} DELETE -- hard delete, remove from map and delete actual file
+    router.GET("/", GetIndex)
+    router.POST("/", RegenerateIndex)
+    router.GET("/:key", GetKey)
+    router.GET("/:key/:field", GetKeyField)
+    router.PUT("/:key", UpdateKey)
+    router.DELETE("/:key", DeleteKey)
+    router.PATCH("/:key/:field", PatchKeyField)
 
     // start server
     log.Info("starting api server on port 3000")
     log.Fatal(http.ListenAndServe(":3000", router))
-}
-
-// Health is a healtcheck endpoint, always returns 200 ok 
-func Health(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    log.WInfo(w, "health ok")
 }
 
 // GetIndex returns a JSON of all files in db index
@@ -85,10 +78,7 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     // if file fetch is successful
     if ok {
         // unpack bytes into map
-        bytes, _ := file.GetByteArray()
-        var jsonMap map[string]interface{}
-        err := json.Unmarshal(bytes, &jsonMap)
-
+        jsonMap, err := file.ToMap()
         if err != nil {
             w.WriteHeader(http.StatusBadRequest)
             log.WWarn(w, "err key '%s' cannot be parsed into json: %s", key, err.Error())
@@ -107,6 +97,63 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
         w.Header().Set("Content-Type", "application/json")
         jsonData, _ := json.Marshal(val)
         fmt.Fprintf(w, "%+v", string(jsonData))
+        return
+    }
+
+    // otherwise write 404
+    w.WriteHeader(http.StatusNotFound)
+    log.WWarn(w, "key '%s' not found", key)
+}
+
+// PatchKeyField
+func PatchKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    key := ps.ByName("key")
+    field := ps.ByName("field")
+    log.Info("patch field '%s' in key '%s'", field, key)
+
+    // get bytes from request body
+    bodyBytes, err := ioutil.ReadAll(r.Body)
+    if err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        log.WWarn(w, "err reading body with key '%s': %s", key, err.Error())
+        return
+    }
+
+    // lookup file by key
+    file, ok := index.I.Lookup(key)
+    // if file fetch is successful
+    if ok {
+        // unpack bytes into map
+        jsonMap, err := file.ToMap()
+        if err != nil {
+            w.WriteHeader(http.StatusBadRequest)
+            log.WWarn(w, "err key '%s' cannot be parsed into json: %s", key, err.Error())
+            return
+        }
+
+        // set field value to parsed json
+        var parsedJSON map[string]interface{}
+        err = json.Unmarshal(bodyBytes, &parsedJSON)
+        if err != nil {
+            // not JSON, set field to string val instead
+            jsonMap[field] = string(bodyBytes)
+        } else {
+            jsonMap[field] = parsedJSON
+        }
+
+        // remarshal to json
+        jsonData, _ := json.Marshal(jsonMap)
+
+        // write to file
+        err = file.ReplaceContent(string(jsonData))
+        if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            log.WWarn(w, "err setting content of key '%s': %s", key, err.Error())
+            return
+        }
+
+        w.WriteHeader(http.StatusInternalServerError)
+        log.WInfo(w, "patch field '%s' of key '%s' successful", field, key)
         return
     }
 

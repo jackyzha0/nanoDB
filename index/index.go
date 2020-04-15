@@ -35,7 +35,7 @@ type File struct {
 
 // List returns all keys in database
 func (i *FileIndex) List() (res []string) {
-	// read lock
+	// read lock on index
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -50,7 +50,7 @@ func (i *FileIndex) List() (res []string) {
 // Returns (File, true) if file exists
 // otherwise, returns new File, false
 func (i *FileIndex) Lookup(key string) (*File, bool) {
-	// read lock
+	// read lock on index
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -63,10 +63,13 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 }
 
 func (i *FileIndex) Put(file *File, bytes []byte) error {
+	// write lock on index
 	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	i.index[file.FileName] = file
-	i.mu.Unlock()
-    return file.replaceContent(string(bytes))
+	err := file.ReplaceContent(string(bytes))
+    return err
 }
 
 // ResolvePath returns a string representing the path to file
@@ -77,6 +80,7 @@ func (f *File) ResolvePath() string {
 // Regenerate rebuilds the current file index from given directory
 // by crawling it for any .json files
 func (i *FileIndex) Regenerate(dir string) {
+	// write lock on index
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -102,6 +106,7 @@ func (i *FileIndex) buildIndexMap() map[string]*File {
 
 // Delete deletes the given file and then removes it from I
 func (i *FileIndex) Delete(file *File) error {
+	// write lock on index
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -111,6 +116,6 @@ func (i *FileIndex) Delete(file *File) error {
 	if err == nil {
 		delete(i.index, file.FileName)
 	}
-	
+
 	return err
 }
