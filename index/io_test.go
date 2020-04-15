@@ -1,12 +1,12 @@
 package index
 
 import (
-	"testing"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"testing"
 
-	os "github.com/spf13/afero"
 	"github.com/google/go-cmp/cmp"
+	os "github.com/spf13/afero"
 )
 
 func checkDeepEquals(t *testing.T, a interface{}, b interface{}) {
@@ -30,13 +30,20 @@ func assertNilErr(t *testing.T, err error) {
 	}
 }
 
+func assertErr(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		t.Errorf("didnt get error when wanted error")
+	}
+}
+
 func makeNewFile(fs os.Fs, name string, contents string) {
 	os.WriteFile(fs, name, []byte(contents), 0644)
 }
 
 func makeNewJSON(fs os.Fs, name string, contents map[string]interface{}) *File {
 	jsonData, _ := json.Marshal(contents)
-	os.WriteFile(fs, name + ".json", jsonData, 0644)
+	os.WriteFile(fs, name+".json", jsonData, 0644)
 	return &File{FileName: name}
 }
 
@@ -73,7 +80,7 @@ func TestToMap(t *testing.T) {
 		fs = os.NewMemMapFs()
 
 		expected := map[string]interface{}{
-			"field": "value",
+			"field":  "value",
 			"field2": "value2",
 		}
 
@@ -107,9 +114,9 @@ func TestToMap(t *testing.T) {
 		expected := map[string]interface{}{
 			"array": []interface{}{
 				"a",
-				 map[string]interface{}{
-				 	"test": "deep nest",
-				 },
+				map[string]interface{}{
+					"test": "deep nest",
+				},
 			},
 		}
 
@@ -127,7 +134,7 @@ func TestReplaceContent(t *testing.T) {
 		fs = os.NewMemMapFs()
 
 		old := map[string]interface{}{
-			"field": "value",
+			"field":  "value",
 			"field2": "value2",
 		}
 
@@ -143,5 +150,15 @@ func TestReplaceContent(t *testing.T) {
 		got, err := f.ToMap()
 		assertNilErr(t, err)
 		checkDeepEquals(t, got, new)
+	})
+}
+
+func TestDelete(t *testing.T) {
+
+	t.Run("delete non-existent file", func(t *testing.T) {
+		fs = os.NewMemMapFs()
+		f := &File{FileName: "doesnt-exist"}
+		err := f.Delete()
+		assertErr(t, err)
 	})
 }
