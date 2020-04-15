@@ -10,7 +10,8 @@ import (
 func main() {
 	log.SetLoggingLevel(log.INFO)
 	log.Info("initializing nanoDB")
-	index.I.Regenerate("db")
+	index.I = index.NewFileIndex("db")
+	index.I.Regenerate()
 
     api.Serve()
 }

@@ -194,7 +194,7 @@ func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 // RegenerateIndex rebuilds main index with saved directory
 func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    index.I.Regenerate(index.I.Dir)
+    index.I.Regenerate()
     log.WInfo(w, "regenerated index")
 }
 
