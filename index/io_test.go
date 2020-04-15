@@ -1,16 +1,16 @@
 package index
 
 import (
-	"reflect"
 	"testing"
 	"encoding/json"
 
 	os "github.com/spf13/afero"
+	"github.com/google/go-cmp/cmp"
 )
 
 func checkDeepEquals(t *testing.T, a interface{}, b interface{}) {
 	t.Helper()
-	if !reflect.DeepEqual(a, b) {
+	if !cmp.Equal(a, b) {
 		t.Errorf("got %+v, want %+v", a, b)
 	}
 }
@@ -62,6 +62,23 @@ func TestToMap(t *testing.T) {
 		expected := map[string]interface{}{
 			"field": "value",
 			"field2": "value2",
+		}
+
+		f := makeNewJSON(fs, "test", expected)
+
+		got, err := f.ToMap()
+		assertNilErr(t, err)
+		checkDeepEquals(t, expected, got)
+	})
+
+	t.Run("json with array", func(t *testing.T) {
+		fs = os.NewMemMapFs()
+
+		expected := map[string]interface{}{
+			"array": []string{
+				"a",
+				"b",
+			},
 		}
 
 		f := makeNewJSON(fs, "test", expected)
