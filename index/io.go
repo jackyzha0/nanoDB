@@ -1,6 +1,7 @@
 package index
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,13 +29,30 @@ func crawlDirectory(directory string) []string {
 	return res
 }
 
+func (f *File) ToMap() (res map[string]interface{}, err error) {
+	// get bytes
+	bytes, err := f.getByteArray()
+	if err != nil {
+		return res, err
+	}
+
+	// unmarshal into map
+	err = json.Unmarshal(bytes, &res)
+	return res, err
+}
+
 // GetByteArray returns the byte array of given file
-func (f *File) GetByteArray() ([]byte, error) {
+func (f *File) getByteArray() ([]byte, error) {
+	// read lock on file
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	
 	return ioutil.ReadFile(f.ResolvePath())
 }
 
-// changes the contents of file f to be str
-func (f *File) replaceContent(str string) error {
+// ReplaceContent changes the contents of file f to be str
+func (f *File) ReplaceContent(str string) error {
+	// write lock on file
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -63,6 +81,7 @@ func (f *File) replaceContent(str string) error {
 
 // Delete tries to remove the file
 func (f *File) Delete() error {
+	// write lock on file
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
