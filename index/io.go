@@ -28,6 +28,11 @@ func crawlDirectory(directory string) []string {
 	return res
 }
 
+// GetByteArray returns the byte array of given file
+func (f *File) GetByteArray() ([]byte, error) {
+	return ioutil.ReadFile(f.ResolvePath())
+}
+
 // changes the contents of file f to be str
 func (f *File) replaceContent(str string) error {
 	f.mu.Lock()

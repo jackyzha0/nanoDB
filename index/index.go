@@ -107,6 +107,10 @@ func (i *FileIndex) Delete(file *File) error {
 
 	// delete first so pointer isn't nil
 	err := file.Delete()
-	delete(i.index, file.FileName)
+
+	if err == nil {
+		delete(i.index, file.FileName)
+	}
+	
 	return err
 }
