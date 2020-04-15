@@ -2,16 +2,18 @@ package index
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	af "github.com/spf13/afero"
 )
 
+var fs = af.NewOsFs()
+
 func crawlDirectory(directory string) []string {
-	files, err := ioutil.ReadDir(directory)
+	files, err := af.ReadDir(fs, directory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,7 +49,7 @@ func (f *File) getByteArray() ([]byte, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	
-	return ioutil.ReadFile(f.ResolvePath())
+	return af.ReadFile(fs, f.ResolvePath())
 }
 
 // ReplaceContent changes the contents of file f to be str
@@ -57,12 +59,12 @@ func (f *File) ReplaceContent(str string) error {
 	defer f.mu.Unlock()
 
 	// create blank file
-	_, err := os.Create(f.ResolvePath())
+	_, err := fs.Create(f.ResolvePath())
 	if err != nil {
 		return err
 	}
 
-	file, err := os.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
+	file, err := fs.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		return err
 	}
@@ -86,7 +88,7 @@ func (f *File) Delete() error {
 	defer f.mu.Unlock()
 
 	// tries to delete the file
-	err := os.Remove(f.ResolvePath())
+	err := fs.Remove(f.ResolvePath())
 	if err != nil {
 		return err
 	}
