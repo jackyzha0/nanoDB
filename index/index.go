@@ -3,11 +3,10 @@ package index
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/jackyzha0/nanoDB/log"
 )
 
 // I is the global database index which keeps track of
@@ -63,6 +62,13 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 	return &File{FileName: key}, false
 }
 
+func (i *FileIndex) Put(file *File, bytes []byte) error {
+	i.mu.Lock()
+	i.index[file.FileName] = file
+	i.mu.Unlock()
+    return file.replaceContent(string(bytes))
+}
+
 // ResolvePath returns a string representing the path to file
 func (f *File) ResolvePath() string {
 	return fmt.Sprintf("%s/%s.json", I.Dir, f.FileName)
@@ -75,11 +81,11 @@ func (i *FileIndex) Regenerate(dir string) {
 	defer i.mu.Unlock()
 
 	start := time.Now()
-	log.Infof("building index for directory %s...", dir)
+	log.Info("building index for directory %s...", dir)
 
 	i.Dir = dir
 	i.index = i.buildIndexMap()
-	log.Infof("built index in %d ms", time.Since(start).Milliseconds())
+	log.Info("built index of %d files in %d ms", len(i.index), time.Since(start).Milliseconds())
 }
 
 // creates a map from key to File
@@ -92,25 +98,4 @@ func (i *FileIndex) buildIndexMap() map[string]*File {
 	}
 
 	return newIndexMap
-}
-
-// ReplaceContent changes the contents of file f to be str
-func (f *File) ReplaceContent(str string) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	// create blank file
-	os.Create(f.ResolvePath())
-	file, err := os.OpenFile(f.ResolvePath(), os.O_WRONLY, os.ModeAppend)
-	defer file.Close()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// appends the given str to the now empty file
-	_, e := file.WriteString(str)
-	if e != nil {
-		log.Fatal(err)
-	}
 }
