@@ -40,6 +40,11 @@ func makeNewJSON(fs os.Fs, name string, contents map[string]interface{}) *File {
 	return &File{FileName: name}
 }
 
+func mapToString(contents map[string]interface{}) string {
+	jsonData, _ := json.Marshal(contents)
+	return string(jsonData)
+}
+
 func TestCrawlDirectory(t *testing.T) {
 
 	t.Run("crawl empty directory", func(t *testing.T) {
@@ -94,5 +99,49 @@ func TestToMap(t *testing.T) {
 		got, err := f.ToMap()
 		assertNilErr(t, err)
 		checkJSONEquals(t, expected, got)
+	})
+
+	t.Run("deep nested with map", func(t *testing.T) {
+		fs = os.NewMemMapFs()
+
+		expected := map[string]interface{}{
+			"array": []interface{}{
+				"a",
+				 map[string]interface{}{
+				 	"test": "deep nest",
+				 },
+			},
+		}
+
+		f := makeNewJSON(fs, "test", expected)
+
+		got, err := f.ToMap()
+		assertNilErr(t, err)
+		checkJSONEquals(t, expected, got)
+	})
+}
+
+func TestReplaceContent(t *testing.T) {
+
+	t.Run("change all content", func(t *testing.T) {
+		fs = os.NewMemMapFs()
+
+		old := map[string]interface{}{
+			"field": "value",
+			"field2": "value2",
+		}
+
+		new := map[string]interface{}{
+			"field": "value",
+		}
+
+		f := makeNewJSON(fs, "test", old)
+
+		err := f.ReplaceContent(mapToString(new))
+		assertNilErr(t, err)
+
+		got, err := f.ToMap()
+		assertNilErr(t, err)
+		checkDeepEquals(t, got, new)
 	})
 }
