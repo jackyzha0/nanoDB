@@ -23,8 +23,8 @@ func Serve() {
     router.GET("/get/:key", GetKey)
     router.GET("/get/:key/:field", GetKeyField)
     router.PUT("/put/:key", UpdateKey)
+    router.DELETE("/delete/:key", DeleteKey)
     // TODO: /{key}/{field} PATCH -- update given key's field with contents
-    // TODO: /{key} UNLINK -- kind of like a soft delete, just remove it from map
     // TODO: /{key} DELETE -- hard delete, remove from map and delete actual file
 
     // start server
@@ -74,7 +74,7 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     log.WWarn(w, "key '%s' not found", key)
 }
 
-// GetKeyField
+// GetKeyField returns key's field, 404 if not found
 func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     key := ps.ByName("key")
     field := ps.ByName("field")
@@ -149,4 +149,28 @@ func UpdateKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func RegenerateIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     index.I.Regenerate(index.I.Dir)
     log.WInfo(w, "regenerated index")
+}
+
+// DeleteKey deletes the file associated with the given key, returns 404 if not found
+func DeleteKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    key := ps.ByName("key")
+    log.Info("delete key '%s'", key)
+    file, ok := index.I.Lookup(key)
+
+    // if file found delete it
+    if ok {
+        err := index.I.Delete(file)
+        if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            log.WWarn(w, "err unable to delete key '%s': '%s'", key, err.Error())
+            return
+        }
+
+        log.WInfo(w, "delete '%s' successful", key)
+        return
+    }
+
+    // else state not found
+    w.WriteHeader(http.StatusNotFound)
+    log.WWarn(w, "key '%s' does not exist", key)
 }
