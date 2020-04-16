@@ -58,7 +58,19 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     // if file fetch is successful
     if ok {
         w.Header().Set("Content-Type", "application/json")
-        http.ServeFile(w, r, file.ResolvePath())
+
+        // unpack bytes into map
+        jsonMap, err := file.ToMap()
+        if err != nil {
+            w.WriteHeader(http.StatusBadRequest)
+            log.WWarn(w, "err key '%s' cannot be parsed into json: %s", key, err.Error())
+            return
+        }
+
+        // successful field get
+        w.Header().Set("Content-Type", "application/json")
+        jsonData, _ := json.Marshal(jsonMap)
+        fmt.Fprintf(w, "%+v", string(jsonData))
         return
     }
 
