@@ -1,8 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -56,6 +57,11 @@ func makeNewJSON(name string, contents map[string]interface{}) *index.File {
 	return &index.File{FileName: name}
 }
 
+func mapToIOReader(m map[string]interface{}) io.Reader {
+	jsonData, _ := json.Marshal(m)
+	return bytes.NewReader(jsonData)
+}
+
 func TestMain(m *testing.M) {
 	index.I = index.NewFileIndex(".")
 	exitVal := m.Run()
@@ -63,6 +69,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetIndex(t *testing.T) {
+
 	t.Run("get empty index", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
@@ -106,6 +113,7 @@ func TestGetIndex(t *testing.T) {
 }
 
 func TestGetKey(t *testing.T) {
+
 	t.Run("get non-existent file", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
@@ -144,5 +152,74 @@ func TestGetKey(t *testing.T) {
 		assertHTTPBody(t, rr, map[string]interface{}{
 			"field": "value",
 		})
+	})
+}
+
+func TestRegenerateIndex(t *testing.T) {
+	t.Run("test regenerate modifies index", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		// rebuild index
+		index.I.Regenerate()
+
+		// add some dummy json files without rebuilding
+		expected := map[string]interface{}{
+			"field": "value",
+		}
+
+		_ = makeNewJSON("test", expected)
+
+		router := httprouter.New()
+		router.GET("/", GetIndex)
+		router.POST("/", RegenerateIndex)
+
+		// get list
+		req, _ := http.NewRequest("GET", "/", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertHTTPBody(t, rr, map[string]interface{}{
+			"files": nil,
+		})
+
+		// rebuild index via endpoint
+		req, _ = http.NewRequest("POST", "/", nil)
+		rr = httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+
+		// get list
+		req, _ = http.NewRequest("GET", "/", nil)
+		rr = httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertHTTPContains(t, rr, []string{"test"})
+	})
+}
+
+func TestGetKeyField(t *testing.T) {
+
+	t.Run("get field of non-existent key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		router := httprouter.New()
+		router.GET("/:key", GetKey)
+
+		req, _ := http.NewRequest("GET", "/nothinghere", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusNotFound)
+	})
+
+	t.Run("get non-existent field of key", func(t *testing.T) {
+		
+	})
+
+	t.Run("get field of key", func(t *testing.T) {
+
 	})
 }

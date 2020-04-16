@@ -13,5 +13,5 @@ func main() {
 	index.I = index.NewFileIndex("db")
 	index.I.Regenerate()
 
-    api.Serve()
+	api.Serve()
 }
