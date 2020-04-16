@@ -117,7 +117,7 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     log.WWarn(w, "key '%s' not found", key)
 }
 
-// PatchKeyField
+// PatchKeyField modifies the field of a key
 func PatchKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     key := ps.ByName("key")
     field := ps.ByName("field")
