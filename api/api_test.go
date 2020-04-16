@@ -64,6 +64,7 @@ func mapToIOReader(m map[string]interface{}) io.Reader {
 
 func TestMain(m *testing.M) {
 	index.I = index.NewFileIndex(".")
+	
 	exitVal := m.Run()
 	os.Exit(exitVal)
 }
@@ -206,9 +207,9 @@ func TestGetKeyField(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
 		router := httprouter.New()
-		router.GET("/:key", GetKey)
+		router.GET("/:key/:field", GetKeyField)
 
-		req, _ := http.NewRequest("GET", "/nothinghere", nil)
+		req, _ := http.NewRequest("GET", "/nothinghere/stillnothing", nil)
 		rr := httptest.NewRecorder()
 
 		router.ServeHTTP(rr, req)
@@ -216,10 +217,82 @@ func TestGetKeyField(t *testing.T) {
 	})
 
 	t.Run("get non-existent field of key", func(t *testing.T) {
-		
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		// add some dummy json files
+		expected := map[string]interface{}{
+			"field": "value",
+		}
+
+		_ = makeNewJSON("test", expected)
+
+		// rebuild index
+		index.I.Regenerate()
+
+		router := httprouter.New()
+		router.GET("/:key/:field", GetKeyField)
+
+		req, _ := http.NewRequest("GET", "/test/no-field", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusBadRequest)
 	})
 
-	t.Run("get field of key", func(t *testing.T) {
+	t.Run("get field of key simple value", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
 
+		// add some dummy json files
+		expected := map[string]interface{}{
+			"field": "value",
+		}
+
+		_ = makeNewJSON("test", expected)
+
+		// rebuild index
+		index.I.Regenerate()
+
+		router := httprouter.New()
+		router.GET("/:key/:field", GetKeyField)
+
+		req, _ := http.NewRequest("GET", "/test/field", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertHTTPContains(t, rr, []string{"value"})
+	})
+
+	t.Run("get field of key nested val", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		// add some dummy json files
+		nested := map[string]interface{}{
+			"more_fields": "yay",
+			"nested_thing": map[string]interface{}{
+				"f": "asdf",
+			},
+		}
+
+
+		expected := map[string]interface{}{
+			"field": nested,
+			"other_field": "yeet",
+		}
+
+		_ = makeNewJSON("test", expected)
+
+		// rebuild index
+		index.I.Regenerate()
+
+		router := httprouter.New()
+		router.GET("/:key/:field", GetKeyField)
+
+		req, _ := http.NewRequest("GET", "/test/field", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertHTTPBody(t, rr, nested)
 	})
 }
