@@ -45,6 +45,17 @@ func checkContentEqual(t *testing.T, key string, newContent map[string]interface
 }
 
 func TestFile_ResolvePath(t *testing.T) {
+    t.Run("test path correct with empty dir", func(t *testing.T) {
+        setup()
+
+        file := createAndReturnFile(t, "resolve_empty")
+
+        got := file.ResolvePath()
+        want := "resolve_empty.json"
+
+        checkDeepEquals(t, got, want)
+    })
+
     t.Run("file path correct with directories", func(t *testing.T) {
         setup()
 
@@ -62,7 +73,13 @@ func TestFileIndex_Lookup(t *testing.T) {
     t.Run("lookup existing file", func(t *testing.T) {
         setup()
 
-        file := createAndReturnFile(t, "lookup1")
+        key := "lookup"
+        createAndReturnFile(t, key)
+
+        file, ok := I.Lookup(key)
+        if !ok {
+            t.Errorf("should have found file: '%s'", file.FileName)
+        }
 
         bytes, _ := file.getByteArray()
         checkDeepEquals(t, string(bytes), "test")
