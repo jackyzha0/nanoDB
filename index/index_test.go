@@ -2,16 +2,17 @@ package index
 
 import (
     "encoding/json"
+    "github.com/stretchr/testify/assert"
     "testing"
 )
 
-func getFile(t *testing.T, key string) *File {
+func createAndReturnFile(t *testing.T, key string) *File {
     t.Helper()
 
-    I.RegenerateNew("db")
-    file, ok := I.Lookup(key)
-    if !ok {
-        t.Errorf("file '%s' was not found", key)
+    file := &File{FileName: key}
+    err := I.Put(file, []byte("test"))
+    if err != nil {
+        t.Errorf("err creating file '%s': '%s'", key, err.Error())
     }
 
     return file
@@ -25,12 +26,30 @@ func checkKeyNotInIndex(t *testing.T, key string) {
     }
 }
 
+func sliceContains(list []string, s string) bool {
+    for _, v := range list {
+        if v == s {
+            return true
+        }
+    }
+    return false
+}
+
+func checkContentEqual(t *testing.T, key string, newContent map[string]interface{}) {
+    got, ok := I.Lookup(key)
+    assert.True(t, ok)
+
+    gotBytes, err := got.getByteArray()
+    assertNilErr(t, err)
+    checkJSONEquals(t, string(gotBytes), mapToString(newContent))
+}
+
 func TestFile_ResolvePath(t *testing.T) {
     t.Run("file path correct with directories", func(t *testing.T) {
         setup()
-        makeNewFile("db/resolve_test.json", "test")
 
-        file := getFile(t, "resolve_test")
+        I.dir = "db"
+        file := createAndReturnFile(t, "resolve_test")
 
         got := file.ResolvePath()
         want := "db/resolve_test.json"
@@ -42,9 +61,8 @@ func TestFile_ResolvePath(t *testing.T) {
 func TestFileIndex_Lookup(t *testing.T) {
     t.Run("lookup existing file", func(t *testing.T) {
         setup()
-        makeNewFile("db/lookup1.json", "test")
 
-        file := getFile(t, "lookup1")
+        file := createAndReturnFile(t, "lookup1")
 
         bytes, _ := file.getByteArray()
         checkDeepEquals(t, string(bytes), "test")
@@ -63,10 +81,9 @@ func TestFileIndex_Lookup(t *testing.T) {
 func TestFileIndex_Delete(t *testing.T) {
     t.Run("delete file that exists", func(t *testing.T) {
         setup()
-        makeNewFile("db/delete_test1.json", "test")
 
         key := "delete_test1"
-        file := getFile(t, key)
+        file := createAndReturnFile(t, key)
         err := I.Delete(file)
         assertNilErr(t, err)
 
@@ -98,16 +115,16 @@ func TestFileIndex_List(t *testing.T) {
     t.Run("list dir with two files", func(t *testing.T) {
         setup()
 
-        makeNewFile("db/list1.json", "test")
-        makeNewFile("db/list2.json", "test")
-        I.RegenerateNew("db")
+        createAndReturnFile(t, "list1")
+        createAndReturnFile(t, "list2")
 
-        checkDeepEquals(t, I.List(), []string{"list1", "list2"})
+        assert.True(t, sliceContains(I.List(), "list1"))
+        assert.True(t, sliceContains(I.List(), "list2"))
     })
 }
 
 func TestFileIndex_Regenerate(t *testing.T) {
-    t.Run("test if new files are added to index", func(t *testing.T) {
+    t.Run("test if new files are added to current index", func(t *testing.T) {
         setup()
 
         makeNewFile("regenerate1.json", "test")
@@ -118,10 +135,11 @@ func TestFileIndex_Regenerate(t *testing.T) {
 
         I.Regenerate()
 
-        checkDeepEquals(t, I.List(), []string{"regenerate1", "regenerate2"})
+        assert.True(t, sliceContains(I.List(), "regenerate1"))
+        assert.True(t, sliceContains(I.List(), "regenerate2"))
     })
 
-    t.Run("test RegenerateNew moves to given dir", func(t *testing.T) {
+    t.Run("test RegenerateNew correctly updates index with files in directory", func(t *testing.T) {
         setup()
 
         // in . not db
@@ -161,9 +179,7 @@ func TestFileIndex_Put(t *testing.T) {
         assertNilErr(t, err)
         assertFileExists(t, key)
 
-        contentBytes, err := I.index[key].getByteArray()
-        assertNilErr(t, err)
-        checkJSONEquals(t, string(contentBytes), mapToString(content))
+        checkContentEqual(t, key, content)
     })
 
     t.Run("replace existing file with given content", func(t *testing.T) {
@@ -182,8 +198,6 @@ func TestFileIndex_Put(t *testing.T) {
         assertNilErr(t, err)
         assertFileExists(t, key)
 
-        contentBytes, err := I.index[key].getByteArray()
-        assertNilErr(t, err)
-        checkJSONEquals(t, string(contentBytes), mapToString(newContent))
+        checkContentEqual(t, key, newContent)
     })
 }
