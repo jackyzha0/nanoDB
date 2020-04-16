@@ -16,17 +16,17 @@ var I *FileIndex
 
 func NewFileIndex(dir string) *FileIndex {
 	return &FileIndex{
-		Dir:   dir,
-		index: map[string]*File{},
+		dir:        dir,
+		index:      map[string]*File{},
 		FileSystem: af.NewOsFs(),
 	}
 }
 
 // FileIndex is holds the actual index mapping for keys to files
 type FileIndex struct {
-	mu    sync.RWMutex
-	Dir   string
-	index map[string]*File
+	mu         sync.RWMutex
+	dir        string
+	index      map[string]*File
 	FileSystem af.Fs
 }
 
@@ -81,13 +81,13 @@ func (i *FileIndex) Put(file *File, bytes []byte) error {
 
 // ResolvePath returns a string representing the path to file
 func (f *File) ResolvePath() string {
-	if I.Dir == "" {
+	if I.dir == "" {
 		return fmt.Sprintf("%s.json", f.FileName)
 	}
-	return fmt.Sprintf("%s/%s.json", I.Dir, f.FileName)
+	return fmt.Sprintf("%s/%s.json", I.dir, f.FileName)
 }
 
-// Regenerate rebuilds the current file index from given directory
+// Regenerate rebuilds the current file index from current directory
 // by crawling it for any .json files
 func (i *FileIndex) Regenerate() {
 	// write lock on index
@@ -95,17 +95,23 @@ func (i *FileIndex) Regenerate() {
 	defer i.mu.Unlock()
 
 	start := time.Now()
-	log.Info("building index for directory %s...", I.Dir)
+	log.Info("building index for directory %s...", i.dir)
 
 	i.index = i.buildIndexMap()
 	log.Info("built index of %d files in %d ms", len(i.index), time.Since(start).Milliseconds())
+}
+
+// RegenerateNew rebuilds the file index at a new given directory
+func (i *FileIndex) RegenerateNew(dir string) {
+	i.dir = dir
+	i.Regenerate()
 }
 
 // creates a map from key to File
 func (i *FileIndex) buildIndexMap() map[string]*File {
 	newIndexMap := make(map[string]*File)
 
-	files := crawlDirectory(i.Dir)
+	files := crawlDirectory(i.dir)
 	for _, f := range files {
 		newIndexMap[f] = &File{FileName: f}
 	}
