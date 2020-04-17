@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jackyzha0/nanoDB/log"
+	"github.com/jackyzha0/nanoDB/index"
 )
 
 func shell(dir string) error {
@@ -31,8 +32,23 @@ func shell(dir string) error {
 	}
 }
 
-func execInput(input string) error {
+func execInput(input string) (err error) {
+	input = strings.TrimSuffix(input, "\n")
 	args := strings.Split(input, " ")
-	log.Info("%+v", args)
-	return nil
+
+	switch args[0] {
+	case "index":
+		files := index.I.List()
+		log.Success("found %d files in index:", len(files))
+
+		for _, f := range files {
+			log.Info(f)
+		}
+
+	default:
+		log.Warn("'%s' is not a valid command.", args[0])
+		log.Info("valid commands: index, lookup <key>, delete <key>, exit")
+	}
+
+	return err
 }
