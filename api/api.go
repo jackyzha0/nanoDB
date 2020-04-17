@@ -164,7 +164,7 @@ func PatchKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
             return
         }
 
-        w.WriteHeader(http.StatusInternalServerError)
+        w.WriteHeader(http.StatusOK)
         log.WInfo(w, "patch field '%s' of key '%s' successful", field, key)
         return
     }

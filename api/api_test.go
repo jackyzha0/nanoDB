@@ -359,24 +359,57 @@ func TestUpdateKey(t *testing.T) {
 }
 
 func TestPatchKeyField(t *testing.T) {
-	// requires use of mapToIOReader
-	t.Run("patch field of non-existent key", func(t *testing.T) {
+	router := httprouter.New()
+	router.PATCH("/:key/:field", PatchKeyField)
 
+	t.Run("patch field of non-existent key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		byteReader := mapToIOReader(exampleJSON)
+		req, _ := http.NewRequest("PATCH", "/nofile/nofield", byteReader)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusNotFound)
 	})
 
 	t.Run("patch non-existent field of existing key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
 
+		_ = makeNewJSON("test", exampleJSON)
+		index.I.Regenerate()
+
+		byteReader := mapToIOReader(exampleJSON)
+		req, _ := http.NewRequest("PATCH", "/test/nofield", byteReader)
+		rr := httptest.NewRecorder()
+
+		expected := map[string]interface{}{
+			"field": "value",
+			"nofield": exampleJSON,
+		}
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertJSONFileContents(t, index.I, "test", expected)
 	})
 
 	t.Run("patch field of existing key with non-json bytes", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
 
-	})
+		_ = makeNewJSON("test", exampleJSON)
+		index.I.Regenerate()
 
-	t.Run("patch field of existing key with flat field", func(t *testing.T) {
+		jsonBytes := []byte("non-json bytes")
+		byteReader := bytes.NewReader(jsonBytes)
+		req, _ := http.NewRequest("PATCH", "/test/field", byteReader)
+		rr := httptest.NewRecorder()
 
-	})
+		expected := map[string]interface{}{
+			"field": "non-json bytes",
+		}
 
-	t.Run("patch field of existing key with nested field", func(t *testing.T) {
-
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertJSONFileContents(t, index.I, "test", expected)
 	})
 }
