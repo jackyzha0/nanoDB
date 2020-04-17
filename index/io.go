@@ -31,7 +31,7 @@ func crawlDirectory(directory string) []string {
 
 func (f *File) ToMap() (res map[string]interface{}, err error) {
 	// get bytes
-	bytes, err := f.getByteArray()
+	bytes, err := f.GetByteArray()
 	if err != nil {
 		return res, err
 	}
@@ -42,7 +42,7 @@ func (f *File) ToMap() (res map[string]interface{}, err error) {
 }
 
 // GetByteArray returns the byte array of given file
-func (f *File) getByteArray() ([]byte, error) {
+func (f *File) GetByteArray() ([]byte, error) {
 	// read lock on file
 	f.mu.RLock()
 	defer f.mu.RUnlock()

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/jackyzha0/nanoDB/index"
+	"github.com/google/go-cmp/cmp"
 	"github.com/julienschmidt/httprouter"
 	af "github.com/spf13/afero"
 )
@@ -70,6 +71,34 @@ func assertHTTPBody(t *testing.T, rr *httptest.ResponseRecorder, expected map[st
 	}
 }
 
+func assertJSONFileContents(t *testing.T, ind *index.FileIndex, key string, wanted map[string]interface{}) {
+	f, ok := ind.Lookup(key)
+	if !ok {
+		t.Errorf("couldn't find key %s in index", key)
+	}
+
+	m, err := f.ToMap()
+	if err != nil {
+		t.Errorf("got error %+v parsing json when shouldn't have", err.Error())
+	}
+
+	if !cmp.Equal(m, wanted) {
+		t.Errorf("file content %+v didn't match! wanted %+v", m, wanted)
+	}
+}
+
+func assertRawFileContents(t *testing.T, ind *index.FileIndex, key string, wanted []byte) {
+	f, ok := ind.Lookup(key)
+	if !ok {
+		t.Errorf("couldn't find key %s in index", key)
+	}
+
+	b, _ := f.GetByteArray()
+	if !cmp.Equal(b, wanted) {
+		t.Errorf("file content %+v didn't match! wanted %+v", string(b), string(wanted))
+	}
+}
+
 func makeNewJSON(name string, contents map[string]interface{}) *index.File {
 	jsonData, _ := json.Marshal(contents)
 	af.WriteFile(index.I.FileSystem, name+".json", jsonData, 0644)
@@ -88,6 +117,7 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
+// examples to reuse
 var exampleJSON = map[string]interface{}{
 	"field": "value",
 }
@@ -112,11 +142,8 @@ func TestGetIndex(t *testing.T) {
 	t.Run("get index with files", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
-		// add some dummy json files
 		_ = makeNewJSON("test1", exampleJSON)
 		_ = makeNewJSON("test2", exampleJSON)
-
-		// rebuild index
 		index.I.Regenerate()
 
 		req, _ := http.NewRequest("GET", "/", nil)
@@ -145,10 +172,7 @@ func TestGetKey(t *testing.T) {
 	t.Run("get file", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
-		// add some dummy json files
 		makeNewJSON("test", exampleJSON)
-
-		// rebuild index
 		index.I.Regenerate()
 
 		req, _ := http.NewRequest("GET", "/test", nil)
@@ -168,14 +192,9 @@ func TestRegenerateIndex(t *testing.T) {
 
 	t.Run("test regenerate modifies index", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
-
-		// rebuild index
 		index.I.Regenerate()
 
-		// add some dummy json files without rebuilding
 		makeNewJSON("test", exampleJSON)
-
-		// make sure no files in index
 		assertEmptySlice(t, index.I.List())
 
 		// rebuild index via endpoint
@@ -184,8 +203,6 @@ func TestRegenerateIndex(t *testing.T) {
 
 		router.ServeHTTP(rr, req)
 		assertHTTPStatus(t, rr, http.StatusOK)
-
-		// get list
 		assertSliceContains(t, index.I.List(), "test")
 	})
 }
@@ -207,10 +224,7 @@ func TestGetKeyField(t *testing.T) {
 	t.Run("get non-existent field of key", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
-		// add some dummy json files
 		makeNewJSON("test", exampleJSON)
-
-		// rebuild index
 		index.I.Regenerate()
 
 		req, _ := http.NewRequest("GET", "/test/no-field", nil)
@@ -223,10 +237,7 @@ func TestGetKeyField(t *testing.T) {
 	t.Run("get field of key simple value", func(t *testing.T) {
 		index.I.SetFileSystem(af.NewMemMapFs())
 
-		// add some dummy json files
 		_ = makeNewJSON("test", exampleJSON)
-
-		// rebuild index
 		index.I.Regenerate()
 
 		req, _ := http.NewRequest("GET", "/test/field", nil)
@@ -254,8 +265,6 @@ func TestGetKeyField(t *testing.T) {
 		}
 
 		_ = makeNewJSON("test", expected)
-
-		// rebuild index
 		index.I.Regenerate()
 
 		req, _ := http.NewRequest("GET", "/test/field", nil)
@@ -268,27 +277,84 @@ func TestGetKeyField(t *testing.T) {
 }
 
 func TestDeleteKey(t *testing.T) {
-	t.Run("delete non-existent key", func(t *testing.T) {
+	router := httprouter.New()
+	router.DELETE("/:key", DeleteKey)
 
+	t.Run("delete non-existent key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		req, _ := http.NewRequest("DELETE", "/nothinghere", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusNotFound)
 	})
 
 	t.Run("delete existing key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
 
+		_ = makeNewJSON("test", exampleJSON)
+		index.I.Regenerate()
+
+		req, _ := http.NewRequest("DELETE", "/test", nil)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertEmptySlice(t, index.I.List())
 	})
 }
 
 func TestUpdateKey(t *testing.T) {
-	// requires use of mapToIOReader
-	t.Run("update non-existent key", func(t *testing.T) {
+	router := httprouter.New()
+	router.PUT("/:key", UpdateKey)
 
+	t.Run("update non-existent key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
+
+		byteReader := mapToIOReader(exampleJSON)
+		req, _ := http.NewRequest("PUT", "/something", byteReader)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertSliceContains(t, index.I.List(), "something")
+		assertJSONFileContents(t, index.I, "something", exampleJSON)
 	})
 
 	t.Run("update existing key", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
 
+		shortTest := map[string]interface{}{
+			"qwer": "asdf",
+		}
+
+		_ = makeNewJSON("something", shortTest)
+		index.I.Regenerate()
+		assertJSONFileContents(t, index.I, "something", shortTest)
+
+		byteReader := mapToIOReader(exampleJSON)
+		req, _ := http.NewRequest("PUT", "/something", byteReader)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertSliceContains(t, index.I.List(), "something")
+		assertJSONFileContents(t, index.I, "something", exampleJSON)
 	})
 
 	t.Run("update key with non-json bytes", func(t *testing.T) {
+		index.I.SetFileSystem(af.NewMemMapFs())
 
+		jsonBytes := []byte("non-json bytes")
+		byteReader := bytes.NewReader(jsonBytes)
+		req, _ := http.NewRequest("PUT", "/something", byteReader)
+		rr := httptest.NewRecorder()
+
+		router.ServeHTTP(rr, req)
+		assertHTTPStatus(t, rr, http.StatusOK)
+		assertSliceContains(t, index.I.List(), "something")
+		assertRawFileContents(t, index.I, "something", jsonBytes)
 	})
 }
 

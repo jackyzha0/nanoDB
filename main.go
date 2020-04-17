@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/jackyzha0/nanoDB/api"
 	"github.com/jackyzha0/nanoDB/index"
-
 	"github.com/jackyzha0/nanoDB/log"
 )
 
