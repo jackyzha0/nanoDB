@@ -49,9 +49,11 @@ func execInput(input string, dir string) (err error) {
 		return lookupWrapper(args)
 	case "delete":
 		return deleteWrapper(args)
+	case "regenerate":
+		index.I.Regenerate()
 	default:
 		log.Warn("'%s' is not a valid command.", args[0])
-		log.Info("valid commands: index, lookup <key>, delete <key>, exit")
+		log.Info("valid commands: index, lookup <key>, delete <key>, regenerate, exit")
 	}
 	return err
 }
