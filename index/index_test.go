@@ -39,7 +39,7 @@ func checkContentEqual(t *testing.T, key string, newContent map[string]interface
     got, ok := I.Lookup(key)
     assert.True(t, ok)
 
-    gotBytes, err := got.getByteArray()
+    gotBytes, err := got.GetByteArray()
     assertNilErr(t, err)
     checkJSONEquals(t, string(gotBytes), mapToString(newContent))
 }
@@ -81,7 +81,7 @@ func TestFileIndex_Lookup(t *testing.T) {
             t.Errorf("should have found file: '%s'", file.FileName)
         }
 
-        bytes, _ := file.getByteArray()
+        bytes, _ := file.GetByteArray()
         checkDeepEquals(t, string(bytes), "test")
     })
 

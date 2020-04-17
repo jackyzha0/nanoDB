@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/jackyzha0/nanoDB/api"
 	"github.com/jackyzha0/nanoDB/index"
-
 	"github.com/jackyzha0/nanoDB/log"
 )
 
@@ -13,5 +12,5 @@ func main() {
 	index.I = index.NewFileIndex("db")
 	index.I.Regenerate()
 
-    api.Serve()
+	api.Serve()
 }
