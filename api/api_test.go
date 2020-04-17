@@ -180,9 +180,7 @@ func TestGetKey(t *testing.T) {
 
 		router.ServeHTTP(rr, req)
 		assertHTTPStatus(t, rr, http.StatusOK)
-		assertHTTPBody(t, rr, map[string]interface{}{
-			"field": "value",
-		})
+		assertHTTPBody(t, rr, exampleJSON)
 	})
 }
 
