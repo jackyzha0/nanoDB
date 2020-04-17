@@ -98,7 +98,7 @@ func (i *FileIndex) Regenerate() {
 	log.Info("building index for directory %s...", i.dir)
 
 	i.index = i.buildIndexMap()
-	log.Info("built index of %d files in %d ms", len(i.index), time.Since(start).Milliseconds())
+	log.Success("built index of %d files in %d ms", len(i.index), time.Since(start).Milliseconds())
 }
 
 // RegenerateNew rebuilds the file index at a new given directory

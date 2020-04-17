@@ -49,13 +49,7 @@ func main() {
 				Aliases: []string{"sh"},
 				Usage:   "start an interactive nanodb shell",
 				Action: func(c *cli.Context) error {
-					// TODO: implement shell
-					/*
-						index
-						lookup <key>
-						delete <key>
-					*/
-					return nil
+					return shell(c.String("dir"))
 				},
 			},
 		},
@@ -70,6 +64,7 @@ func main() {
 // serve defines all the endpoints and starts a new http server on :3000
 func serve(port int, dir string) error {
 	log.SetLoggingLevel(log.INFO)
+	log.Info("initializing nanoDB")
 	setup(dir)
 
 	router := httprouter.New()
@@ -96,33 +91,48 @@ func getLockLocation(dir string) string {
 	return dir + "/" + base
 }
 
+func acquireLock(dir string) error {
+	_, err := index.I.FileSystem.Stat(getLockLocation(dir))
+
+	if os.IsNotExist(err) {
+		_, err = index.I.FileSystem.Create(getLockLocation(dir))
+		return err
+	}
+
+	return fmt.Errorf("couldn't acquire lock on %s", dir)
+}
+
+func releaseLock(dir string) error {
+	lockdir := getLockLocation(dir)
+	return index.I.FileSystem.Remove(lockdir)
+}
+
 func setup(dir string) {
-	log.Info("initializing nanoDB")
 	index.I = index.NewFileIndex(dir)
-	index.I.Regenerate()
 
 	// create nanodb lock
-	_, err := index.I.FileSystem.Create(getLockLocation(dir))
+	err := acquireLock(dir)
 	if err != nil {
-		log.Warn("couldn't acquire lock on %s", dir)
 		log.Fatal(err)
 		return
 	}
+
+	index.I.Regenerate()
 
 	// trap sigint
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		cleanup(getLockLocation(dir))
+		cleanup(dir)
 		os.Exit(1)
 	}()
 }
 
-func cleanup(lockdir string) {
-	log.Info("caught term signal! cleaning up...")
+func cleanup(dir string) {
+	log.Info("\ncaught term signal! cleaning up...")
 
-	err := index.I.FileSystem.Remove(lockdir)
+	err := releaseLock(dir)
 	if err != nil {
 		log.Warn("couldn't remove lock")
 		log.Fatal(err)
