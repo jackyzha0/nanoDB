@@ -8,27 +8,9 @@ import (
 
     "github.com/jackyzha0/nanoDB/index"
     "github.com/jackyzha0/nanoDB/log"
-
     "github.com/julienschmidt/httprouter"
 )
 
-// Serve defines all the endpoints and starts a new http server on :3000
-func Serve() {
-    router := httprouter.New()
-
-    // define endpoints
-    router.GET("/", GetIndex)
-    router.POST("/", RegenerateIndex)
-    router.GET("/:key", GetKey)
-    router.GET("/:key/:field", GetKeyField)
-    router.PUT("/:key", UpdateKey)
-    router.DELETE("/:key", DeleteKey)
-    router.PATCH("/:key/:field", PatchKeyField)
-
-    // start server
-    log.Info("starting api server on port 3000")
-    log.Fatal(http.ListenAndServe(":3000", router))
-}
 
 // GetIndex returns a JSON of all files in db index
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
