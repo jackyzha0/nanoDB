@@ -19,15 +19,8 @@ import (
 func main() {
 	app := &cli.App{
 		Name:  "nanodb",
-		Usage: "a simple, easy, and stupid database for prototyping and hackathons",
+		Usage: "a simple, easy, and debuggable document database for prototyping and hackathons",
 		Flags: []cli.Flag{
-			&cli.IntFlag{
-				Name:        "port",
-				Aliases:     []string{"p"},
-				Value:       3000,
-				Usage:       "port to run nanodb on",
-				DefaultText: "3000",
-			},
 			&cli.StringFlag{
 				Name:        "dir",
 				Aliases:     []string{"d"},
@@ -41,6 +34,15 @@ func main() {
 				Name:    "start",
 				Aliases: []string{"st"},
 				Usage:   "start a nanodb server",
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:        "port",
+						Aliases:     []string{"p"},
+						Value:       3000,
+						Usage:       "port to run nanodb on",
+						DefaultText: "3000",
+					},
+				},
 				Action: func(c *cli.Context) error {
 					return serve(c.Int("port"), c.String("dir"))
 				},

@@ -14,6 +14,7 @@ import (
 // which files are where
 var I *FileIndex
 
+// NewFileIndex returns a reference to a new file index
 func NewFileIndex(dir string) *FileIndex {
 	return &FileIndex{
 		dir:        dir,
@@ -36,6 +37,7 @@ type File struct {
 	mu       sync.RWMutex
 }
 
+// SetFileSystem sets the file system for the given FileIndex
 func (i *FileIndex) SetFileSystem(fs af.Fs) {
 	i.FileSystem = fs
 }
