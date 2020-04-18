@@ -19,10 +19,10 @@ var (
 	// if false, use logrus. if true, print raw to tty
 	IsShellMode = false
 
-	successCol  = color.New(color.FgGreen).SprintFunc()
-	infoCol     = color.New(color.FgWhite).SprintFunc()
-	warnCol     = color.New(color.FgYellow).SprintFunc()
-	errCol      = color.New(color.FgRed).SprintFunc()
+	successCol = color.New(color.FgGreen).SprintFunc()
+	infoCol    = color.New(color.FgWhite).SprintFunc()
+	warnCol    = color.New(color.FgYellow).SprintFunc()
+	errCol     = color.New(color.FgRed).SprintFunc()
 )
 
 func SetLoggingLevel(l int) {

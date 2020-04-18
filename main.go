@@ -1,3 +1,4 @@
+// Package main serves as a user interface to the underlying index and api packages
 package main
 
 import (

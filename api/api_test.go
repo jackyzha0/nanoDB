@@ -382,7 +382,7 @@ func TestPatchKeyField(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		expected := map[string]interface{}{
-			"field": "value",
+			"field":   "value",
 			"nofield": exampleJSON,
 		}
 
