@@ -167,7 +167,17 @@ You end up with the following:
    }
 }
 ```
-This can be done within arrays and maps, to any arbitrary depth for which references should be resolved! The API has a default resolving depth of 3 while the CLI has a default of 0 but this can be explicitly changed if needed. 
+This can be done within arrays and maps, to any arbitrary depth for which references should be resolved! The API has a default resolving depth of 3 while the CLI has a default of 0 but this can be explicitly changed if needed. For example through the API:
+#### `/:key   GET`
+```bash
+# get document with key `key` and only up to 1 reference resolved
+curl localhost:3000/key?depth=1
+```
+#### `/:key/:field   GET`
+```bash
+# get `example_field` of document `key` with up to 5 reference depth
+curl localhost:3000/key/example_field?depth=5
+```
 ## running `nanoDB`
 #### from source
 0. `git clone https://github.com/jackyzha0/nanoDB.git`
@@ -176,7 +186,9 @@ This can be done within arrays and maps, to any arbitrary depth for which refere
 
 #### via docker
 0. `docker pull jzhao2k19/nanodb:latest`
-1. `docker run -p 3000:3000 jzhao2k19/nanodb:latest` # change -p 3000:3000 to different port if necessary
+1. `docker run -p 3000:3000 jzhao2k19/nanodb:latest st` # change -p 3000:3000 to different port if necessary
+
+**Note:** the docker version only supports the REST API server, not the CLI
 
 ## building `nanoDB` from source
 0. `git clone https://github.com/jackyzha0/nanoDB.git`
