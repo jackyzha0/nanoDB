@@ -175,8 +175,10 @@ This can be done within arrays and maps, to any arbitrary depth for which refere
 2. `nanodb`
 
 #### via docker
-0. TODO
+0. `docker pull jzhao2k19/nanodb:latest`
+1. `docker run -p 3000:3000 jzhao2k19/nanodb:latest` # change -p 3000:3000 to different port if necessary
 
 ## building `nanoDB` from source
 0. `git clone https://github.com/jackyzha0/nanoDB.git`
-1. `go build -o nanodb .`
+1. `make build`
+2. (optional) for cross-platform builds, run `make build-all`

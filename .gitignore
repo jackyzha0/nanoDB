@@ -2,3 +2,4 @@ nanoDB
 .idea
 .DS_Store
 db/*
+dist/*
