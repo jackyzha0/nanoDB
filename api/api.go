@@ -3,15 +3,12 @@ package api
 import (
     "encoding/json"
     "fmt"
-    "io/ioutil"
-    "net/http"
-    "reflect"
-    "strconv"
-    "strings"
-
     "github.com/jackyzha0/nanoDB/index"
     "github.com/jackyzha0/nanoDB/log"
     "github.com/julienschmidt/httprouter"
+    "io/ioutil"
+    "net/http"
+    "strconv"
 )
 
 // GetIndex returns a JSON of all files in db index
@@ -54,7 +51,7 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
         // successful field get
         w.Header().Set("Content-Type", "application/json")
         maxDepth := getMaxDepthParam(r)
-        resolvedJsonMap := resolveReferences(jsonMap, maxDepth)
+        resolvedJsonMap := index.ResolveReferences(jsonMap, maxDepth)
 
         jsonData, _ := json.Marshal(resolvedJsonMap)
         fmt.Fprintf(w, "%+v", string(jsonData))
@@ -95,7 +92,7 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
         // successful field get
         w.Header().Set("Content-Type", "application/json")
         maxDepth := getMaxDepthParam(r)
-        resolvedValue := resolveReferences(val, maxDepth)
+        resolvedValue := index.ResolveReferences(val, maxDepth)
 
         jsonData, _ := json.Marshal(resolvedValue)
         fmt.Fprintf(w, "%+v", string(jsonData))
@@ -118,77 +115,6 @@ func getMaxDepthParam(r *http.Request) int {
     }
 
     return maxDepth
-}
-
-// determines if there are any key references nested within a json
-// if found, replace the references with the corresponding value
-func resolveReferences(jsonVal interface{}, depthLeft int) interface{} {
-    // if max recursive depth is exceeded, return as is
-    if depthLeft < 1 {
-        return jsonVal
-    }
-
-    val := reflect.ValueOf(jsonVal)
-
-    switch val.Kind() {
-    case reflect.String:
-        valString := val.String()
-
-        // if value is reference to another key
-        if strings.Contains(valString, "REF::") {
-            resolvedString := resolveString(valString, depthLeft)
-            return resolvedString
-        }
-
-        // if not a ref, keep as is
-        return valString
-
-    case reflect.Slice:
-        numberOfValues := val.Len()
-        newSlice := make([]interface{}, numberOfValues)
-
-        // for each value in the slice, try to resolve it recursively
-        for i := 0; i < numberOfValues; i++ {
-            pointer := val.Index(i)
-            newSlice[i] = resolveReferences(pointer.Interface(), depthLeft)
-        }
-
-        return newSlice
-
-    case reflect.Map:
-        newMap := make(map[string]interface{})
-
-        // for each value in the map, try to resolve it recursively
-        for _, key := range val.MapKeys() {
-            nestedVal := val.MapIndex(key).Interface()
-            newMap[key.String()] = resolveReferences(nestedVal, depthLeft)
-        }
-
-        return newMap
-
-    default:
-        return jsonVal
-    }
-}
-
-// resolves a single string that has a reference in it
-func resolveString(valString string, depthLeft int) interface{} {
-    key := strings.Replace(valString, "REF::", "", 1)
-    file, ok := index.I.Lookup(key)
-
-    // if key found, get contents
-    if ok {
-        // change bytes into map
-        jsonMap, err := file.ToMap()
-        if err != nil {
-            errMessage := fmt.Sprintf("REF::ERR key '%s' cannot be parsed into json: %s", key, err.Error())
-            return errMessage
-        }
-        return resolveReferences(jsonMap, depthLeft - 1)
-    }
-
-    // if key not found
-    return fmt.Sprintf("REF::ERR key '%s' not found", key)
 }
 
 // PatchKeyField modifies the field of a key
