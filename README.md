@@ -9,7 +9,7 @@ a simple, easy, and debuggable document database for prototyping and hackathons
 
 `nanoDB` is designed to be a JSON document-based database that relies on key based access to achieve `O(1)` access time. In addition, fields can hold references to other documents, which are automatically resolved up to a certain depth on retrieval. All of these documents are stored as actual JSON files on the local machine, allowing developers to easily read, debug, and modify the data without the need for external tools. 
 
-**You can think of it like `Redis` but with `MongoDB` style documents &mdash; all of which is on-disk, human-readable, and through a REST API.**
+**Think of it like `Redis` but with `MongoDB` style documents &mdash; all of which is on-disk, human-readable, and through a REST API.**
 
 That means you can do stuff like
 * make ID based authentication services
@@ -33,7 +33,7 @@ As a result, we've devloped `nanoDB` to adhere to 3 key principles.
 * easy to deploy &mdash; single binary with no dependencies. no language specific drivers needed!
 
 ## endpoints
-#### `/   GET`
+#### `GET /`
 ```bash
 # get all files in database index
 curl localhost:3000/
@@ -42,7 +42,7 @@ curl localhost:3000/
 # > {"files":["test","test2","test3"]}
 ```
 
-#### `/   POST`
+#### `POST /`
 ```bash
 # manually regenerate index
 # shouldn't need to be done as each operation should update index on its own
@@ -52,7 +52,7 @@ curl -X POST localhost:3000/
 # > regenerated index
 ```
 
-#### `/:key   GET`
+#### `GET /:key`
 ```bash
 # get document with key `key`
 curl localhost:3000/key
@@ -63,7 +63,7 @@ curl localhost:3000/key
 # > key 'key' not found
 ```
 
-#### `/:key   PUT`
+#### `PUT /:key`
 ```bash
 # creates document `key` if it doesn't exist
 # otherwise, replaces content of `key` with given
@@ -74,7 +74,7 @@ curl -X PUT -H "Content-Type: application/json" \
 # > create 'key' successful
 ```
 
-#### `/:key   DELETE` delete document `key`
+#### `DELETE /:key`
 ```bash
 # deletes document `key`
 curl -X DELETE localhost:3000/key
@@ -85,7 +85,7 @@ curl -X DELETE localhost:3000/key
 # > key 'key' doest not exist
 ```
 
-#### `/:key/:field   GET`
+#### `GET /:key/:field`
 ```bash
 # get `example_field` of document `key`
 curl localhost:3000/key/example_field
@@ -97,7 +97,7 @@ curl localhost:3000/key/example_field
 # example output on 404 NotFound (key not found)
 # > key 'key' not found
 ```
-#### `/:key/:field   PATCH`
+#### `PATCH /:key/:field`
 ```bash
 # update `field` of document `key` with content
 # if field doesnt exist, create it
@@ -170,14 +170,14 @@ You end up with the following:
 }
 ```
 This can be done within arrays and maps, to any arbitrary depth for which references should be resolved! The API has a default resolving depth of 3 while the CLI has a default of 0 but this can be explicitly changed if needed. For example through the API:
-#### `/:key   GET`
+#### `GET /:key`
 ```bash
-# get document with key `key` and only up to 1 reference resolved
+# get document with key `key` and only up to 1 layer of references resolved
 curl localhost:3000/key?depth=1
 ```
-#### `/:key/:field   GET`
+#### `GET /:key/:field`
 ```bash
-# get `example_field` of document `key` with up to 5 reference depth
+# get `example_field` of document `key`, resolving up to 5 layers deep
 curl localhost:3000/key/example_field?depth=5
 ```
 ## running `nanoDB`
