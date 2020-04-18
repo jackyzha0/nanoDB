@@ -1,4 +1,4 @@
-// Package index ...
+// Package index contains files responsible for maintaining the database document index
 package index
 
 import (
@@ -71,6 +71,7 @@ func (i *FileIndex) Lookup(key string) (*File, bool) {
 	return &File{FileName: key}, false
 }
 
+// Put creates/updates file in the fileindex
 func (i *FileIndex) Put(file *File, bytes []byte) error {
 	// write lock on index
 	i.mu.Lock()
@@ -78,7 +79,7 @@ func (i *FileIndex) Put(file *File, bytes []byte) error {
 
 	i.index[file.FileName] = file
 	err := file.ReplaceContent(string(bytes))
-    return err
+	return err
 }
 
 // ResolvePath returns a string representing the path to file

@@ -6,9 +6,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-    I = NewFileIndex("")
-    exitVal := m.Run()
-    os.Exit(exitVal)
+	I = NewFileIndex("")
+	exitVal := m.Run()
+	os.Exit(exitVal)
 }
 
 func TestCrawlDirectory(t *testing.T) {

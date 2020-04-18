@@ -46,7 +46,7 @@ func (f *File) GetByteArray() ([]byte, error) {
 	// read lock on file
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	return af.ReadFile(I.FileSystem, f.ResolvePath())
 }
 
