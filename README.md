@@ -170,14 +170,14 @@ You end up with the following:
 }
 ```
 This can be done within arrays and maps, to any arbitrary depth for which references should be resolved! The API has a default resolving depth of 3 while the CLI has a default of 0 but this can be explicitly changed if needed. For example through the API:
-#### `/:key   GET`
+#### `GET /:key`
 ```bash
-# get document with key `key` and only up to 1 reference resolved
+# get document with key `key` and only up to 1 layer of references resolved
 curl localhost:3000/key?depth=1
 ```
-#### `/:key/:field   GET`
+#### `GET /:key/:field`
 ```bash
-# get `example_field` of document `key` with up to 5 reference depth
+# get `example_field` of document `key`, resolving up to 5 layers deep
 curl localhost:3000/key/example_field?depth=5
 ```
 ## running `nanoDB`
