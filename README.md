@@ -1,4 +1,6 @@
 # nanodb
+[![Go Report Card](https://goreportcard.com/badge/github.com/jackyzha0/nanoDB)](https://goreportcard.com/report/github.com/jackyzha0/nanoDB) [![](https://godoc.org/github.com/jackyzha0/nanoDB?status.svg)](http://godoc.org/github.com/jackyzha0/nanoDB)
+
 a simple, easy, and debuggable document database for prototyping and hackathons
 
 ## what is `nanoDB`
