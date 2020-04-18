@@ -19,6 +19,14 @@ eventual consistency
 this is not meant to be a production ready database!
 
 ## motivation
+cant actually see the documents when prototyping
+long queries for a single document when all i need is a single lookup
+tired of databases not supporting reference resolution
+
+#### key principles
+* easy to lookup &mdash; key-based lookup in `O(1)` time
+* easy to debug &mdash; all documents are JSON files which are human readable
+* easy to deploy &mdash; single binary with no dependencies
 
 ## endpoints
 #### `/   GET` get index
