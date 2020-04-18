@@ -3,39 +3,111 @@ a simple, easy, and debuggable document database for prototyping and hackathons
 
 ## what is `nanoDB`
 
-> tldr; a document database with key-based access and reference resolution. each document is actually a JSON file on your local machine, making for easy debugging.
+> tldr; `nanoDB` is a document database with key-based access and reference resolution served through a REST API. each document is actually a JSON file on your local machine, making for easy debugging.
 
-document-based database with key-based access and reference resolution.
-schemaless
-think about it like a lightweight mongodb with built-in reference resolution.
+`nanoDB` is designed to be a JSON document-based database that relies on key based access to achieve `O(1)` access time. In addition, fields can hold references to other documents, which are automatically resolved up to a certain depth on retrieval. All of these documents are stored as actual JSON files on the local machine, allowing developers to easily read, debug, and modify the data without the need for external tools. 
 
-that means you can do stuff like:
+**You can think of it like `Redis` but with `MongoDB` style documents &mdash; all of which is on-disk, human-readable, and through a REST API.**
 
-does not have
-aggregation framework
-advanced queries
-sharding
-eventual consistency
-this is not meant to be a production ready database!
+That means you can do stuff like
+* make ID based authentication services
+* store user data
+* simple application cache
+* and much much more, without the hassle of setting up an entire database schema and having to deal with drivers!
+
+*However*, `nanoDB` does not have any aggregation frameworks, advanced queries, sharding, or support for storage distribution. It was not created with the intention of ever being a production ready database, and should not be used as such!
 
 ## motivation
-cant actually see the documents when prototyping
-long queries for a single document when all i need is a single lookup
-tired of databases not supporting reference resolution
+`nanoDB` arose out of many frustrations that we've personally come across when prototyping.
+1. it sucks when you can't actually see/modify the documents when you're working with without the use of something external like `MongoDB Explorer` or `SQLPro`
+2. I don't want to install drivers just to make queries and edit a database! Why can't this just be an API call?
+3. Trying to resolve references to other documents in `noSQL` databases is a pain
+
+As a result, we've devloped `nanoDB` to adhere to 3 key principles.
 
 #### key principles
 * easy to lookup &mdash; key-based lookup in `O(1)` time
 * easy to debug &mdash; all documents are JSON files which are human readable
-* easy to deploy &mdash; single binary with no dependencies
+* easy to deploy &mdash; single binary with no dependencies. no language specific drivers needed!
 
 ## endpoints
-#### `/   GET` get index
-#### `/   POST` regenerate index
-#### `/:key   GET` get document `key`
-#### `/:key   PUT` create/update document `key`
+#### `/   GET`
+```bash
+# get all files in database index
+curl localhost:3000/
+
+# example output on 200 OK
+# > {"files":["test","test2","test3"]}
+```
+
+#### `/   POST`
+```bash
+# manually regenerate index
+# shouldn't need to be done as each operation should update index on its own
+curl -X POST localhost:3000/
+
+# example output on 200 OK
+# > regenerated index
+```
+
+#### `/:key   GET`
+```bash
+# get document with key `key`
+curl localhost:3000/key
+
+# example output on 200 OK (found key)
+# > {"example_field": "example_value"}
+# example output on 404 NotFound (key not found)
+# > key 'key' not found
+```
+
+#### `/:key   PUT`
+```bash
+# creates document `key` if it doesn't exist
+# otherwise, replaces content of `key` with given
+curl -X PUT -H "Content-Type: application/json" \
+            -d '{"key1":"value"}' localhost:3000/key
+
+# example output on 200 OK (create/update success)
+# > create 'key' successful
+```
+
 #### `/:key   DELETE` delete document `key`
-#### `/:key/:field   POST` get `field` of document `key`
-#### `/:key/:field   PATCH` update `field` of document `key`
+```bash
+# deletes document `key`
+curl -X DELETE localhost:3000/key
+
+# example output on 200 OK (delete success)
+# > delete 'key' successful
+# example output on 404 NotFound (key not found)
+# > key 'key' doest not exist
+```
+
+#### `/:key/:field   GET`
+```bash
+# get `example_field` of document `key`
+curl localhost:3000/key/example_field
+
+# example output on 200 OK (found field)
+# > "example_value"
+# example output on 400 BadRequest (field not found)
+# > err key 'key' does not have field 'example_field'
+# example output on 404 NotFound (key not found)
+# > key 'key' not found
+```
+#### `/:key/:field   PATCH`
+```bash
+# update `field` of document `key` with content
+# if field doesnt exist, create it
+curl -X PATCH -H "Content-Type: application/json" \
+              -d '{"nested":"json!"}' \
+              localhost:3000/key/example_field
+
+# example output on 200 OK (found field)
+# > patch field 'example_field' of key 'key' successful
+# example output on 404 NotFound (key not found)
+# > key 'key' not found
+```
 
 ## commands
 ```bash
