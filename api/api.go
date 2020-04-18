@@ -3,14 +3,13 @@ package api
 import (
     "encoding/json"
     "fmt"
-    "io/ioutil"
-    "net/http"
-
     "github.com/jackyzha0/nanoDB/index"
     "github.com/jackyzha0/nanoDB/log"
     "github.com/julienschmidt/httprouter"
+    "io/ioutil"
+    "net/http"
+    "strconv"
 )
-
 
 // GetIndex returns a JSON of all files in db index
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -51,7 +50,10 @@ func GetKey(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
         // successful field get
         w.Header().Set("Content-Type", "application/json")
-        jsonData, _ := json.Marshal(jsonMap)
+        maxDepth := getMaxDepthParam(r)
+        resolvedJsonMap := index.ResolveReferences(jsonMap, maxDepth)
+
+        jsonData, _ := json.Marshal(resolvedJsonMap)
         fmt.Fprintf(w, "%+v", string(jsonData))
         return
     }
@@ -89,7 +91,10 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
         // successful field get
         w.Header().Set("Content-Type", "application/json")
-        jsonData, _ := json.Marshal(val)
+        maxDepth := getMaxDepthParam(r)
+        resolvedValue := index.ResolveReferences(val, maxDepth)
+
+        jsonData, _ := json.Marshal(resolvedValue)
         fmt.Fprintf(w, "%+v", string(jsonData))
         return
     }
@@ -97,6 +102,19 @@ func GetKeyField(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     // otherwise write 404
     w.WriteHeader(http.StatusNotFound)
     log.WWarn(w, "key '%s' not found", key)
+}
+
+// try to find recursive depth param or else return a default
+func getMaxDepthParam(r *http.Request) int {
+    maxDepth := 3
+
+    maxDepthStr := r.URL.Query().Get("depth")
+    parsedInt, err := strconv.Atoi(maxDepthStr)
+    if err == nil {
+        maxDepth = parsedInt
+    }
+
+    return maxDepth
 }
 
 // PatchKeyField modifies the field of a key

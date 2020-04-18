@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jackyzha0/nanoDB/index"
 	"github.com/google/go-cmp/cmp"
+	"github.com/jackyzha0/nanoDB/index"
 	"github.com/julienschmidt/httprouter"
 	af "github.com/spf13/afero"
 )
