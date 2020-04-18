@@ -167,7 +167,7 @@ func resolveReferences(jsonVal interface{}, depthLeft int) interface{} {
         return newMap
 
     default:
-        return val
+        return jsonVal
     }
 }
 
