@@ -6,11 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/jackyzha0/nanoDB/index"
 	"github.com/jackyzha0/nanoDB/log"
 )
+
+// DefaultDepth is the default depth to resolve reference to
+const DefaultDepth = 0
 
 func shell(dir string) error {
 	log.IsShellMode = true
@@ -53,9 +57,22 @@ func execInput(input string, dir string) (err error) {
 		index.I.Regenerate()
 	default:
 		log.Warn("'%s' is not a valid command.", args[0])
-		log.Info("valid commands: index, lookup <key>, delete <key>, regenerate, exit")
+		log.Info("valid commands: index, lookup <key> <depth>, delete <key>, regenerate, exit")
 	}
 	return err
+}
+
+func parseDepthFromArgs(args []string) int {
+	if len(args) < 3 {
+		// no depth argument, use default
+		return DefaultDepth
+	}
+
+	if parsedInt, err := strconv.Atoi(args[2]); err == nil {
+		return parsedInt
+	}
+
+	return DefaultDepth
 }
 
 func indexWrapper() {
@@ -73,7 +90,6 @@ func lookupWrapper(args []string) error {
 		err := fmt.Errorf("no key provided")
 		return err
 	}
-
 	key := args[1]
 
 	// lookup key, return err if not found
@@ -83,8 +99,21 @@ func lookupWrapper(args []string) error {
 		return err
 	}
 
+	log.Success("found key %s:", key)
+
 	// get file bytes
-	b, err := f.GetByteArray()
+	m, err := f.ToMap()
+	if err != nil {
+		return err
+	}
+
+	// resolve refs
+	depth := parseDepthFromArgs(args)
+	log.Info("resolving reference to depth %d...", depth)
+	resolvedMap := index.ResolveReferences(m, depth)
+
+	// back to bytes
+	b, err := json.Marshal(resolvedMap)
 	if err != nil {
 		return err
 	}
@@ -96,7 +125,6 @@ func lookupWrapper(args []string) error {
 		return err
 	}
 
-	log.Success("found key %s:", key)
 	log.Info("%s", prettyJSON.String())
 	return nil
 }
