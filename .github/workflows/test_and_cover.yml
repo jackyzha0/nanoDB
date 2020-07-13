@@ -12,7 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v1
     - name: Run tests
-      run: go test -v -covermode=count 
+      run: go test -v -covermode=count ./...
 
   coverage:
     runs-on: ubuntu-latest
@@ -27,7 +27,7 @@ jobs:
     - name: Calculate coverage 
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin   
-        go test -v -race -covermode=atomic -coverprofile=coverage.txt
+        go test -v -race -covermode=atomic -coverprofile=coverage.txt ./...
     - name: CodeCov
       uses: codecov/codecov-action@v1
       with:
