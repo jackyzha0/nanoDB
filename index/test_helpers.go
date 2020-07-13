@@ -3,10 +3,11 @@ package index
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	af "github.com/spf13/afero"
 	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	af "github.com/spf13/afero"
 )
 
 func checkDeepEquals(t *testing.T, a interface{}, b interface{}) {
@@ -52,12 +53,12 @@ func assertFileDoesNotExist(t *testing.T, filePath string) {
 }
 
 func makeNewFile(name string, contents string) {
-	af.WriteFile(I.FileSystem, name, []byte(contents), 0644)
+	_ = af.WriteFile(I.FileSystem, name, []byte(contents), 0644)
 }
 
 func makeNewJSON(name string, contents map[string]interface{}) *File {
 	jsonData, _ := json.Marshal(contents)
-	af.WriteFile(I.FileSystem, name+".json", jsonData, 0644)
+	_ = af.WriteFile(I.FileSystem, name+".json", jsonData, 0644)
 	return &File{FileName: name}
 }
 

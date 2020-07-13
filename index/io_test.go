@@ -40,7 +40,7 @@ func TestToMap(t *testing.T) {
 
 	t.Run("simple flat json to map", func(t *testing.T) {
 		setup()
-		I.FileSystem.Mkdir("db/", os.ModeAppend)
+		_ = I.FileSystem.Mkdir("db/", os.ModeAppend)
 
 		expected := map[string]interface{}{
 			"field":  "value",
