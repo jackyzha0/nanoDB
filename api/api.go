@@ -4,12 +4,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jackyzha0/nanoDB/index"
-	"github.com/jackyzha0/nanoDB/log"
-	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/jackyzha0/nanoDB/index"
+	"github.com/jackyzha0/nanoDB/log"
+	"github.com/julienschmidt/httprouter"
 )
 
 // GetIndex returns a JSON of all files in db index

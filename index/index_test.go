@@ -2,8 +2,9 @@ package index
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func createAndReturnFile(t *testing.T, key string) *File {

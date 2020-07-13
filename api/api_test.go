@@ -101,7 +101,7 @@ func assertRawFileContents(t *testing.T, ind *index.FileIndex, key string, wante
 
 func makeNewJSON(name string, contents map[string]interface{}) *index.File {
 	jsonData, _ := json.Marshal(contents)
-	af.WriteFile(index.I.FileSystem, name+".json", jsonData, 0644)
+	_ = af.WriteFile(index.I.FileSystem, name+".json", jsonData, 0644)
 	return &index.File{FileName: name}
 }
 

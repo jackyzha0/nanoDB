@@ -1,11 +1,12 @@
 package index
 
 import (
-	af "github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
 	"testing"
+
+	af "github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveReferences(t *testing.T) {
